@@ -15,13 +15,8 @@ def fetch_data(ticker):
         return None
 
     close = df["Close"].squeeze().dropna()
-    open_ = df["Open"].squeeze().dropna()
-    high = df["High"].squeeze().dropna()
-    low = df["Low"].squeeze().dropna()
-
     sma200 = close.rolling(200).mean()
 
-    # Indicateurs
     v1m = (close.iloc[-1] - close.iloc[-21]) / close.iloc[-21] * 100
     v3m = (close.iloc[-1] - close.iloc[-63]) / close.iloc[-63] * 100
     v6m = (close.iloc[-1] - close.iloc[-126]) / close.iloc[-126] * 100
@@ -31,58 +26,43 @@ def fetch_data(ticker):
     sma200_last = float(sma200.iloc[-1])
     mm200 = (float(close.iloc[-1]) - sma200_last) / sma200_last * 100 if sma200_last else 0
 
-    # Données bougies pour Lightweight Charts
-    candles = []
-    sma_line = []
-    for i in range(len(close)):
-        d = close.index[i].strftime("%Y-%m-%d")
-        candles.append({
-            "time": d,
-            "open": round(float(open_.iloc[i]), 4),
-            "high": round(float(high.iloc[i]), 4),
-            "low": round(float(low.iloc[i]), 4),
-            "close": round(float(close.iloc[i]), 4),
-        })
-        if not pd.isna(sma200.iloc[i]):
-            sma_line.append({
-                "time": d,
-                "value": round(float(sma200.iloc[i]), 4),
-            })
-
+    dates = [d.strftime("%Y-%m-%d") for d in close.index]
     return {
-        "candles": candles,
-        "sma200": sma_line,
+        "dates": dates,
+        "close": [round(float(v), 2) for v in close],
+        "sma200": [round(float(v), 2) if not pd.isna(v) else None for v in sma200],
         "adm136": round(float(adm136), 1),
         "v1y": round(float(v1y_minus3), 1),
         "mm200": round(float(mm200), 1),
         "last": round(float(close.iloc[-1]), 2),
     }
 
-charts_data = {}
-for name, ticker in TICKERS.items():
-    data = fetch_data(ticker)
-    print(f"{name}: {len(data['candles']) if data else 'AUCUNE DONNEE'} bougies")
-    if data:
-        charts_data[name] = data
-
-os.makedirs("output", exist_ok=True)
-
 def indicator_color(value):
-    if value >= 0:
-        return "#1a7f37"
-    return "#d1242f"
+    return "#1a7f37" if value >= 0 else "#d1242f"
 
 def fmt(value):
     sign = "+" if value >= 0 else ""
     return f"{sign}{value:.1f}%".replace(".", ",")
+
+charts_data = {}
+for name, ticker in TICKERS.items():
+    print(f"Fetching {name}...")
+    data = fetch_data(ticker)
+    if data:
+        print(f"{name}: {len(data['dates'])} points")
+        charts_data[name] = data
+    else:
+        print(f"{name}: AUCUNE DONNEE")
+
+os.makedirs("output", exist_ok=True)
 
 charts_html = ""
 for name, data in charts_data.items():
     chart_id = f"chart_{name.replace(' ', '_').replace('/', '_')}"
     charts_html += f"""
 <div class="chart-block">
-  <h2>{name} <span class="price">{fmt(data['last']).replace('%','')}</span></h2>
-  <div id="{chart_id}" class="chart-container"></div>
+  <h2>{name} <span class="price">{data['last']}</span></h2>
+  <canvas id="{chart_id}"></canvas>
   <div class="indicators">
     <div class="ind">
       <span class="ind-label">ADM136-3%</span>
@@ -99,46 +79,47 @@ for name, data in charts_data.items():
   </div>
 </div>
 <script>
-(function() {{
-  var chart = LightweightCharts.createChart(document.getElementById("{chart_id}"), {{
-    width: 0,
-    height: 280,
-    layout: {{ background: {{ color: "#ffffff" }}, textColor: "#333" }},
-    grid: {{ vertLines: {{ color: "#f0f0f0" }}, horzLines: {{ color: "#f0f0f0" }} }},
-    rightPriceScale: {{ borderColor: "#ddd" }},
-    timeScale: {{ borderColor: "#ddd", timeVisible: true }},
-  }});
-
-  // Redimensionnement responsive
-  function resizeChart() {{
-    var container = document.getElementById("{chart_id}");
-    chart.resize(container.offsetWidth, 280);
+new Chart(document.getElementById("{chart_id}"), {{
+  type: "line",
+  data: {{
+    labels: {json.dumps(data["dates"])},
+    datasets: [
+      {{
+        label: "Cours",
+        data: {json.dumps(data["close"])},
+        borderColor: "#2196F3",
+        backgroundColor: "rgba(33,150,243,0.08)",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: true,
+      }},
+      {{
+        label: "MM200",
+        data: {json.dumps(data["sma200"])},
+        borderColor: "#FF9800",
+        borderWidth: 1.5,
+        pointRadius: 0,
+        borderDash: [5, 3],
+        fill: false,
+      }}
+    ]
+  }},
+  options: {{
+    responsive: true,
+    interaction: {{ mode: "index", intersect: false }},
+    plugins: {{
+      legend: {{ position: "top" }},
+      tooltip: {{ callbacks: {{
+        label: ctx => ctx.dataset.label + ": " + (ctx.parsed.y?.toFixed(2) ?? "-")
+      }}}}
+    }},
+    scales: {{
+      x: {{ ticks: {{ maxTicksLimit: 12 }} }},
+      y: {{ ticks: {{ callback: v => v.toFixed(0) }} }}
+    }}
   }}
-  resizeChart();
-  window.addEventListener("resize", resizeChart);
-
-  var candleSeries = chart.addCandlestickSeries({{
-    upColor: "#1a7f37",
-    downColor: "#d1242f",
-    borderUpColor: "#1a7f37",
-    borderDownColor: "#d1242f",
-    wickUpColor: "#1a7f37",
-    wickDownColor: "#d1242f",
-  }});
-  candleSeries.setData({json.dumps(data['candles'])});
-
-  var smaSeries = chart.addLineSeries({{
-    color: "#FF9800",
-    lineWidth: 1.5,
-    lineStyle: 1,
-    priceLineVisible: false,
-    lastValueVisible: false,
-    title: "MM200",
-  }});
-  smaSeries.setData({json.dumps(data['sma200'])});
-
-  chart.timeScale().fitContent();
-}})();
+}});
 </script>
 """
 
@@ -148,7 +129,7 @@ html = f"""<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ETF Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lightweight-charts/4.1.3/lightweight-charts.standalone.production.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   * {{ box-sizing: border-box; }}
   body {{
@@ -159,7 +140,6 @@ html = f"""<!DOCTYPE html>
   }}
   h1 {{ color: #333; margin-bottom: 4px; font-size: 1.4em; }}
   .updated {{ color: #999; font-size: 0.85em; margin-bottom: 16px; }}
-
   .grid {{
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -168,7 +148,6 @@ html = f"""<!DOCTYPE html>
   @media (max-width: 700px) {{
     .grid {{ grid-template-columns: 1fr; }}
   }}
-
   .chart-block {{
     background: #fff;
     border: 1px solid #ddd;
@@ -188,13 +167,9 @@ html = f"""<!DOCTYPE html>
     color: #666;
     font-weight: normal;
   }}
-  .chart-container {{
-    width: 100%;
-    height: 280px;
-  }}
   .indicators {{
     display: flex;
-    gap: 16px;
+    gap: 8px;
     margin-top: 10px;
     flex-wrap: wrap;
   }}
