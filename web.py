@@ -61,6 +61,7 @@ def fetch_data(ticker):
 charts_data = {}
 for name, ticker in TICKERS.items():
     data = fetch_data(ticker)
+    print(f"{name}: {len(data['candles']) if data else 'AUCUNE DONNEE'} bougies")
     if data:
         charts_data[name] = data
 
