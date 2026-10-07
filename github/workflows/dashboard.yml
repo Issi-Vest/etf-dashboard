@@ -27,8 +27,15 @@ jobs:
         run: |
           pip install yfinance pandas
 
+      - name: Debug
+        run: |
+          echo "Contenu du repertoire:"
+          ls -la
+          echo "Contenu de web.py:"
+          cat web.py
+
       - name: Generate dashboard
-        run: python web.py
+        run: python $GITHUB_WORKSPACE/web.py
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
