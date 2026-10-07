@@ -1,19 +1,36 @@
-import yfinance as yf
-import pandas as pd
 import json
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+print("=== DEBUT WEB.PY ===")
+
+try:
+    import yfinance as yf
+    print("yfinance importé OK")
+except Exception as e:
+    print(f"ERREUR import yfinance: {e}")
+
+try:
+    import pandas as pd
+    print("pandas importé OK")
+except Exception as e:
+    print(f"ERREUR import pandas: {e}")
+
 now = datetime.now(ZoneInfo("Europe/Paris"))
+print(f"Heure: {now}")
 
 TICKERS = {"MSFT": "MSFT", "Visa": "V"}
+print(f"Tickers: {TICKERS}")
 
 def fetch_data(ticker):
+    print(f"  -> yf.download({ticker})...")
     df = yf.download(ticker, period="1y", interval="1d", progress=False, auto_adjust=False)
     if df is None or df.empty:
+        print(f"  -> DataFrame vide pour {ticker}")
         return None
 
+    print(f"  -> {len(df)} lignes téléchargées")
     close = df["Close"].squeeze().dropna()
     sma200 = close.rolling(200).mean()
 
@@ -46,13 +63,18 @@ def fmt(value):
 
 charts_data = {}
 for name, ticker in TICKERS.items():
-    print(f"Fetching {name}...")
-    data = fetch_data(ticker)
-    if data:
-        print(f"{name}: {len(data['dates'])} points")
-        charts_data[name] = data
-    else:
-        print(f"{name}: AUCUNE DONNEE")
+    print(f"Fetching {name} ({ticker})...")
+    try:
+        data = fetch_data(ticker)
+        if data:
+            print(f"{name}: {len(data['dates'])} points OK")
+            charts_data[name] = data
+        else:
+            print(f"{name}: AUCUNE DONNEE")
+    except Exception as e:
+        print(f"{name}: ERREUR - {e}")
+
+print(f"charts_data contient: {list(charts_data.keys())}")
 
 os.makedirs("output", exist_ok=True)
 
