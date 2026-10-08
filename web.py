@@ -24,13 +24,16 @@ TICKERS = {"MSFT": "MSFT", "Visa": "V"}
 
 def fetch_data(ticker):
     print(f"  -> yf.download({ticker})...")
-    df = yf.download(ticker, period="1y", interval="1d", progress=False, auto_adjust=False)
+    df = yf.download(ticker, period="2y", interval="1d", progress=False, auto_adjust=False)
     if df is None or df.empty:
         print(f"  -> DataFrame vide pour {ticker}")
         return None
     print(f"  -> {len(df)} lignes téléchargées")
+
     close = df["Close"].squeeze().dropna()
     sma200 = close.rolling(200).mean()
+
+    # Indicateurs sur 2 ans (pour avoir 252 points fiables)
     v1m = (close.iloc[-1] - close.iloc[-21]) / close.iloc[-21] * 100
     v3m = (close.iloc[-1] - close.iloc[-63]) / close.iloc[-63] * 100
     v6m = (close.iloc[-1] - close.iloc[-126]) / close.iloc[-126] * 100
@@ -39,11 +42,25 @@ def fetch_data(ticker):
     v1y_minus3 = v1y_raw - 3
     sma200_last = float(sma200.iloc[-1])
     mm200 = (float(close.iloc[-1]) - sma200_last) / sma200_last * 100 if sma200_last else 0
-    dates = [d.strftime("%Y-%m-%d") for d in close.index]
+
+    # Données complètes (2 ans) pour le graphique
+    dates_2y = [d.strftime("%Y-%m-%d") for d in close.index]
+    close_2y = [round(float(v), 2) for v in close]
+    sma200_2y = [round(float(v), 2) if not pd.isna(v) else None for v in sma200]
+
+    # Données filtrées (1 an) = derniers 252 points
+    n = min(252, len(close))
+    dates_1y = dates_2y[-n:]
+    close_1y = close_2y[-n:]
+    sma200_1y = sma200_2y[-n:]
+
     return {
-        "dates": dates,
-        "close": [round(float(v), 2) for v in close],
-        "sma200": [round(float(v), 2) if not pd.isna(v) else None for v in sma200],
+        "dates_1y": dates_1y,
+        "close_1y": close_1y,
+        "sma200_1y": sma200_1y,
+        "dates_2y": dates_2y,
+        "close_2y": close_2y,
+        "sma200_2y": sma200_2y,
         "adm136": round(float(adm136), 1),
         "v1y": round(float(v1y_minus3), 1),
         "mm200": round(float(mm200), 1),
@@ -63,7 +80,7 @@ for name, ticker in TICKERS.items():
     try:
         data = fetch_data(ticker)
         if data:
-            print(f"{name}: {len(data['dates'])} points OK")
+            print(f"{name}: {len(data['dates_2y'])} points OK")
             charts_data[name] = data
         else:
             print(f"{name}: AUCUNE DONNEE")
@@ -79,7 +96,13 @@ for name, data in charts_data.items():
     chart_id = f"chart_{name.replace(' ', '_').replace('/', '_')}"
     charts_html += f"""
 <div class="chart-block">
-  <h2>{name} <span class="price">{data['last']}</span></h2>
+  <div class="chart-header">
+    <h2>{name} <span class="price">{data['last']:.2f}</span></h2>
+    <div class="period-btns">
+      <button class="btn-period active" onclick="setPeriod('{chart_id}', '1y', this)">1 an</button>
+      <button class="btn-period" onclick="setPeriod('{chart_id}', '2y', this)">2 ans</button>
+    </div>
+  </div>
   <canvas id="{chart_id}"></canvas>
   <div class="indicators">
     <div class="ind">
@@ -97,47 +120,65 @@ for name, data in charts_data.items():
   </div>
 </div>
 <script>
-new Chart(document.getElementById("{chart_id}"), {{
-  type: "line",
-  data: {{
-    labels: {json.dumps(data["dates"])},
-    datasets: [
-      {{
-        label: "Cours",
-        data: {json.dumps(data["close"])},
-        borderColor: "#2196F3",
-        backgroundColor: "rgba(33,150,243,0.08)",
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.1,
-        fill: true,
-      }},
-      {{
-        label: "MM200",
-        data: {json.dumps(data["sma200"])},
-        borderColor: "#FF9800",
-        borderWidth: 1.5,
-        pointRadius: 0,
-        borderDash: [5, 3],
-        fill: false,
-      }}
-    ]
-  }},
-  options: {{
-    responsive: true,
-    interaction: {{ mode: "index", intersect: false }},
-    plugins: {{
-      legend: {{ position: "top" }},
-      tooltip: {{ callbacks: {{
-        label: ctx => ctx.dataset.label + ": " + (ctx.parsed.y?.toFixed(2) ?? "-")
-      }}}}
+(function() {{
+  var data = {{
+    "1y": {{
+      labels: {json.dumps(data['dates_1y'])},
+      close: {json.dumps(data['close_1y'])},
+      sma200: {json.dumps(data['sma200_1y'])}
     }},
-    scales: {{
-      x: {{ ticks: {{ maxTicksLimit: 12 }} }},
-      y: {{ ticks: {{ callback: v => v.toFixed(0) }} }}
+    "2y": {{
+      labels: {json.dumps(data['dates_2y'])},
+      close: {json.dumps(data['close_2y'])},
+      sma200: {json.dumps(data['sma200_2y'])}
     }}
-  }}
-}});
+  }};
+
+  var chart_{chart_id} = new Chart(document.getElementById("{chart_id}"), {{
+    type: "line",
+    data: {{
+      labels: data["1y"].labels,
+      datasets: [
+        {{
+          label: "Cours",
+          data: data["1y"].close,
+          borderColor: "#2196F3",
+          backgroundColor: "rgba(33,150,243,0.08)",
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.1,
+          fill: true,
+        }},
+        {{
+          label: "MM200",
+          data: data["1y"].sma200,
+          borderColor: "#FF9800",
+          borderWidth: 1.5,
+          pointRadius: 0,
+          borderDash: [5, 3],
+          fill: false,
+        }}
+      ]
+    }},
+    options: {{
+      responsive: true,
+      interaction: {{ mode: "index", intersect: false }},
+      plugins: {{
+        legend: {{ position: "top" }},
+        tooltip: {{ callbacks: {{
+          label: ctx => ctx.dataset.label + ": " + (ctx.parsed.y?.toFixed(2) ?? "-")
+        }}}}
+      }},
+      scales: {{
+        x: {{ ticks: {{ maxTicksLimit: 12 }} }},
+        y: {{ ticks: {{ callback: v => v.toFixed(0) }} }}
+      }}
+    }}
+  }});
+
+  window.charts = window.charts || {{}};
+  window.charts["{chart_id}"] = {{ chart: chart_{chart_id}, data: data }};
+}})();
 </script>
 """
 
@@ -156,8 +197,15 @@ html = f"""<!DOCTYPE html>
   .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }}
   @media (max-width: 700px) {{ .grid {{ grid-template-columns: 1fr; }} }}
   .chart-block {{ background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; }}
-  h2 {{ margin: 0 0 8px 0; font-size: 1em; color: #333; display: flex; align-items: baseline; gap: 8px; }}
+  .chart-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
+  h2 {{ margin: 0; font-size: 1em; color: #333; display: flex; align-items: baseline; gap: 8px; }}
   .price {{ font-size: 0.9em; color: #666; font-weight: normal; }}
+  .period-btns {{ display: flex; gap: 4px; }}
+  .btn-period {{
+    padding: 3px 10px; font-size: 0.8em; border: 1px solid #ddd;
+    border-radius: 4px; background: #fff; cursor: pointer; color: #555;
+  }}
+  .btn-period.active {{ background: #2196F3; color: #fff; border-color: #2196F3; }}
   .indicators {{ display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }}
   .ind {{ display: flex; flex-direction: column; align-items: center; background: #f9f9f9; border: 1px solid #eee; border-radius: 6px; padding: 6px 12px; flex: 1; min-width: 80px; }}
   .ind-label {{ font-size: 0.75em; color: #999; margin-bottom: 2px; }}
@@ -170,6 +218,22 @@ html = f"""<!DOCTYPE html>
 <div class="grid">
 {charts_html}
 </div>
+<script>
+function setPeriod(chartId, period, btn) {{
+  var entry = window.charts[chartId];
+  if (!entry) return;
+  var chart = entry.chart;
+  var d = entry.data[period];
+  chart.data.labels = d.labels;
+  chart.data.datasets[0].data = d.close;
+  chart.data.datasets[1].data = d.sma200;
+  chart.update();
+  // Met à jour le style des boutons
+  var btns = btn.parentNode.querySelectorAll(".btn-period");
+  btns.forEach(function(b) {{ b.classList.remove("active"); }});
+  btn.classList.add("active");
+}}
+</script>
 </body>
 </html>"""
 
