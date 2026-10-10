@@ -366,6 +366,7 @@ def render_chart(name, ticker, small=False):
 # =========================
 # CONSTRUCTION PAGE
 # =========================
+os.makedirs("output", exist_ok=True)
 body = ""
 
 # Devises
