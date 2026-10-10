@@ -230,7 +230,8 @@ def render_chart(name, ticker, small=False):
     sigs_1y = build_bg_datasets(data['dates_1y'], data['signals_1y'])
     sigs_2y = build_bg_datasets(data['dates_2y'], data['signals_2y'])
 
-    return f"""<div class="chart-block">
+css_class = "chart-block small" if small else "chart-block"
+return f"""<div class="{css_class}">
   <div class="chart-header">
     <h2>{sig} {name} <span class="price">{fmt_price(data['last'])}</span></h2>
     <div class="period-btns">
@@ -436,7 +437,8 @@ h1 {{ font-size: 1.2em; margin-bottom: 2px; }}
   border-radius: 5px; padding: 8px; min-width: 0;
 }}
 .chart-block.empty {{ background: transparent; border: 1px dashed #ddd; }}
-.chart-wrap {{ position: relative; width: 100%; }}
+.chart-wrap {{ position: relative; width: 100%; height: 200px; }}
+.chart-block.small .chart-wrap {{ height: 160px; }}
 
 .chart-header {{
   display: flex; justify-content: space-between;
