@@ -291,8 +291,10 @@ def render_chart(name, ticker, small=False):
         if (!sigs[i]) continue;
         var color = SIG_ALPHA[sigs[i]];
         if (!color) continue;
-        var x1 = xScale.getPixelForIndex(i);
-        var x2 = i + 1 < sigs.length ? xScale.getPixelForIndex(i+1) : x1 + 2;
+        var meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data || !meta.data[i]) continue;
+        var x1 = meta.data[i].x;
+        var x2 = meta.data[i+1] ? meta.data[i+1].x : x1 + 2;
         ctx.fillStyle = color;
         ctx.fillRect(x1, top, x2 - x1 + 1, bottom - top);
       }}
