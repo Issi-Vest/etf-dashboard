@@ -230,8 +230,8 @@ def render_chart(name, ticker, small=False):
     sigs_1y = build_bg_datasets(data['dates_1y'], data['signals_1y'])
     sigs_2y = build_bg_datasets(data['dates_2y'], data['signals_2y'])
 
-css_class = "chart-block small" if small else "chart-block"
-return f"""<div class="{css_class}">
+    css_class = "chart-block small" if small else "chart-block"
+    return f"""<div class="{css_class}">
   <div class="chart-header">
     <h2>{sig} {name} <span class="price">{fmt_price(data['last'])}</span></h2>
     <div class="period-btns">
