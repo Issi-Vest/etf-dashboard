@@ -20,6 +20,8 @@ except Exception as e:
 now = datetime.now(ZoneInfo("Europe/Paris"))
 print(f"Heure: {now}")
 
+dispatch_token = os.environ.get("GITHUB_DISPATCH_TOKEN", "")
+
 # =========================
 # STRUCTURE DES BLOCS
 # =========================
@@ -59,18 +61,49 @@ DEVISES = [
     [("CHFEUR", "CHFEUR=X"), ("EURCHF", "EURCHF=X")],
 ]
 
-FUNDSMITH = [
-    ("Marriott",  "MAR"),
-    ("Waters",    "WAT"),
-    ("L'Oréal",   "OR.PA"),
-    ("Visa",      "V"),
-    ("Amadeus",   "AMS.MC"),
-    ("Stryker",   "SYK"),
-    ("Alphabet",  "GOOGL"),
-    ("Meta",      "META"),
-    ("Microsoft", "MSFT"),
-    ("ADP",       "ADP"),
-]
+FUNDSMITH_TICKERS = {
+    "Marriott": "MAR",
+    "Waters": "WAT",
+    "L'Oréal": "OR.PA",
+    "Visa": "V",
+    "Amadeus": "AMS.MC",
+    "Stryker": "SYK",
+    "Alphabet": "GOOGL",
+    "Meta Platforms": "META",
+    "Microsoft": "MSFT",
+    "Automatic Data Processing": "ADP",
+    "Philip Morris": "PM",
+    "Novo Nordisk": "NOVO-B.CO",
+    "Mettler-Toledo": "MTD",
+    "Church & Dwight": "CHD",
+    "Domino's Pizza": "DPZ",
+    "Fortinet": "FTNT",
+    "Texas Instruments": "TXN",
+    "Zoetis": "ZTS",
+    "LVMH": "MC.PA",
+    "Nike": "NKE",
+}
+
+# Fetch dynamique des holdings Fundsmith
+fundsmith_names = fetch_fundsmith_holdings()
+FUNDSMITH = []
+for name in fundsmith_names:
+    ticker = FUNDSMITH_TICKERS.get(name)
+    if ticker:
+        FUNDSMITH.append((name, ticker))
+    else:
+        print(f"Fundsmith ticker inconnu: {name}")
+        FUNDSMITH.append((name, None))
+
+if not FUNDSMITH:
+    # Fallback si le fetch échoue
+    FUNDSMITH = [
+        ("Marriott", "MAR"), ("Waters", "WAT"),
+        ("L'Oréal", "OR.PA"), ("Visa", "V"),
+        ("Amadeus", "AMS.MC"), ("Stryker", "SYK"),
+        ("Alphabet", "GOOGL"), ("Meta Platforms", "META"),
+        ("Microsoft", "MSFT"), ("ADP", "ADP"),
+    ]
 
 # =========================
 # FETCH
@@ -161,6 +194,41 @@ def fmt_price(v):
     if v >= 100:  return f"{v:.2f}"
     if v >= 1:    return f"{v:.4f}"
     return f"{v:.6f}"
+
+def fetch_fundsmith_holdings():
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "https://www.fundsmith.co.uk/factsheet/",
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
+                "Accept-Encoding": "identity",
+            }
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            html = resp.read().decode("utf-8")
+
+        import re
+        section = html.split("Top 10 holdings")
+        holdings = []
+        if len(section) > 1:
+            after = section[1]
+            ul_match = re.search(r"<ul[^>]*>(.*?)</ul>", after, re.DOTALL)
+            if ul_match:
+                items = re.findall(r"<li[^>]*>(.*?)</li>", ul_match.group(1), re.DOTALL)
+                for it in items:
+                    import html as html_module
+                    clean = html_module.unescape(re.sub(r"<[^>]+>", "", it)).strip()
+                    if clean:
+                        holdings.append(clean)
+
+        print(f"Fundsmith holdings: {holdings[:10]}")
+        return holdings[:10]
+    except Exception as e:
+        print(f"Fundsmith fetch error: {e}")
+        return []
 
 # =========================
 # CACHE
@@ -482,7 +550,13 @@ h2 {{
 </style>
 </head>
 <body>
-<h1>📈 ETF Dashboard</h1>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+  <h1>📈 ETF Dashboard</h1>
+  <button onclick="refreshDashboard()" id="refresh-btn"
+    style="padding:6px 14px;background:#1565C0;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.85em">
+    🔄 Actualiser
+  </button>
+</div>
 <span class="updated">Mis à jour le {now.strftime("%d/%m/%Y à %Hh%M")} (heure de Paris)</span>
 {body}
 <script>
@@ -500,6 +574,38 @@ function setPeriod(cid, period, btn) {{
     b.classList.remove("active");
   }});
   btn.classList.add("active");
+}}
+<script>
+function refreshDashboard() {{
+  var btn = document.getElementById("refresh-btn");
+  btn.textContent = "⏳ En cours...";
+  btn.disabled = true;
+  
+  fetch("https://api.github.com/repos/Issi-Vest/etf-dashboard/actions/workflows/dashboard.yml/dispatches", {{
+    method: "POST",
+    headers: {{
+      "Authorization": "token {dispatch_token}",
+      "Accept": "application/vnd.github.v3+json",
+      "Content-Type": "application/json"
+    }},
+    body: JSON.stringify({{"ref": "main"}})
+  }})
+  .then(function(r) {{
+    if (r.status === 204) {{
+      btn.textContent = "✅ Lancé ! (~2min)";
+      setTimeout(function() {{
+        btn.textContent = "🔄 Actualiser";
+        btn.disabled = false;
+      }}, 120000);
+    }} else {{
+      btn.textContent = "❌ Erreur";
+      btn.disabled = false;
+    }}
+  }})
+  .catch(function() {{
+    btn.textContent = "❌ Erreur réseau";
+    btn.disabled = false;
+  }});
 }}
 </script>
 </body>
