@@ -1,5 +1,8 @@
 import json
 import os
+import re
+import html as html_module
+import urllib.request
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -84,6 +87,41 @@ FUNDSMITH_TICKERS = {
     "Nike": "NKE",
 }
 
+# =========================
+# FETCH FUNDSMITH
+# =========================
+def fetch_fundsmith_holdings():
+    try:
+        req = urllib.request.Request(
+            "https://www.fundsmith.co.uk/factsheet/",
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
+                "Accept-Encoding": "identity",
+            }
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            html_content = resp.read().decode("utf-8")
+
+        section = html_content.split("Top 10 holdings")
+        holdings = []
+        if len(section) > 1:
+            after = section[1]
+            ul_match = re.search(r"<ul[^>]*>(.*?)</ul>", after, re.DOTALL)
+            if ul_match:
+                items = re.findall(r"<li[^>]*>(.*?)</li>", ul_match.group(1), re.DOTALL)
+                for it in items:
+                    clean = html_module.unescape(re.sub(r"<[^>]+>", "", it)).strip()
+                    if clean:
+                        holdings.append(clean)
+
+        print(f"Fundsmith holdings: {holdings[:10]}")
+        return holdings[:10]
+    except Exception as e:
+        print(f"Fundsmith fetch error: {e}")
+        return []
+
 # Fetch dynamique des holdings Fundsmith
 fundsmith_names = fetch_fundsmith_holdings()
 FUNDSMITH = []
@@ -96,7 +134,6 @@ for name in fundsmith_names:
         FUNDSMITH.append((name, None))
 
 if not FUNDSMITH:
-    # Fallback si le fetch échoue
     FUNDSMITH = [
         ("Marriott", "MAR"), ("Waters", "WAT"),
         ("L'Oréal", "OR.PA"), ("Visa", "V"),
@@ -106,7 +143,7 @@ if not FUNDSMITH:
     ]
 
 # =========================
-# FETCH
+# FETCH YAHOO
 # =========================
 def fetch_data(ticker):
     if ticker is None:
@@ -140,7 +177,6 @@ def fetch_data(ticker):
         sma200_last = float(sma200.iloc[-1]) if not pd.isna(sma200.iloc[-1]) else 0
         mm200 = (float(close.iloc[-1]) - sma200_last) / sma200_last * 100 if sma200_last else 0
 
-        # Signal jour par jour
         signals_daily = []
         for i in range(len(close)):
             if i < 21:
@@ -162,7 +198,6 @@ def fetch_data(ticker):
         dates_all = [d.strftime("%Y-%m-%d") for d in close.index]
         close_all = [round(float(v), 4) for v in close]
         sma200_all = [round(float(v), 4) if not pd.isna(v) else None for v in sma200]
-
         n1y = min(252, len(close))
 
         return {
@@ -195,41 +230,6 @@ def fmt_price(v):
     if v >= 1:    return f"{v:.4f}"
     return f"{v:.6f}"
 
-def fetch_fundsmith_holdings():
-    try:
-        import urllib.request
-        req = urllib.request.Request(
-            "https://www.fundsmith.co.uk/factsheet/",
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
-                "Accept-Encoding": "identity",
-            }
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            html = resp.read().decode("utf-8")
-
-        import re
-        section = html.split("Top 10 holdings")
-        holdings = []
-        if len(section) > 1:
-            after = section[1]
-            ul_match = re.search(r"<ul[^>]*>(.*?)</ul>", after, re.DOTALL)
-            if ul_match:
-                items = re.findall(r"<li[^>]*>(.*?)</li>", ul_match.group(1), re.DOTALL)
-                for it in items:
-                    import html as html_module
-                    clean = html_module.unescape(re.sub(r"<[^>]+>", "", it)).strip()
-                    if clean:
-                        holdings.append(clean)
-
-        print(f"Fundsmith holdings: {holdings[:10]}")
-        return holdings[:10]
-    except Exception as e:
-        print(f"Fundsmith fetch error: {e}")
-        return []
-
 # =========================
 # CACHE
 # =========================
@@ -242,7 +242,6 @@ def get_data(name, ticker):
         data_cache[ticker] = fetch_data(ticker)
     return data_cache[ticker]
 
-# Précharge tout
 print("=== CHARGEMENT DES DONNEES ===")
 seen = set()
 for pairs in BLOCS.values():
@@ -257,7 +256,7 @@ for line in DEVISES:
             seen.add(t)
             get_data("", t)
 for _, t in FUNDSMITH:
-    if t not in seen:
+    if t and t not in seen:
         seen.add(t)
         get_data("", t)
 print(f"=== {len(data_cache)} tickers chargés ===")
@@ -274,10 +273,8 @@ def render_chart(name, ticker, small=False):
     height = 160 if small else 200
 
     if data is None:
-        return f"""<div class="chart-block">
-          <div class="chart-header"><h2>{name}</h2></div>
-          <p class="no-data">Données indisponibles</p>
-        </div>"""
+        css_class = "chart-block small" if small else "chart-block"
+        return f'<div class="{css_class}"><div class="chart-header"><h2>{name}</h2></div><p class="no-data">Données indisponibles</p></div>'
 
     if data['adm136'] > 0:
         sig = "✅"
@@ -286,19 +283,10 @@ def render_chart(name, ticker, small=False):
     else:
         sig = "🚨"
 
-    # Génère les segments colorés pour le fond
-    # On crée des annotations sous forme de dataset "area" invisible
-    # plutôt qu'un plugin custom qui peut planter
-    def build_bg_datasets(dates, signals):
-        """Crée 3 datasets de remplissage (un par couleur) pour simuler le fond coloré."""
-        # On va créer des points à min/max pour chaque couleur
-        # Approche : utilise backgroundColor par point via scriptable options
-        return json.dumps(signals)
-
-    sigs_1y = build_bg_datasets(data['dates_1y'], data['signals_1y'])
-    sigs_2y = build_bg_datasets(data['dates_2y'], data['signals_2y'])
-
+    sigs_1y = json.dumps(data['signals_1y'])
+    sigs_2y = json.dumps(data['signals_2y'])
     css_class = "chart-block small" if small else "chart-block"
+
     return f"""<div class="{css_class}">
   <div class="chart-header">
     <h2>{sig} {name} <span class="price">{fmt_price(data['last'])}</span></h2>
@@ -328,109 +316,54 @@ def render_chart(name, ticker, small=False):
 <script>
 (function(){{
   var d = {{
-    "1y": {{
-      labels: {json.dumps(data['dates_1y'])},
-      close:  {json.dumps(data['close_1y'])},
-      sma:    {json.dumps(data['sma200_1y'])},
-      sig:    {sigs_1y}
-    }},
-    "2y": {{
-      labels: {json.dumps(data['dates_2y'])},
-      close:  {json.dumps(data['close_2y'])},
-      sma:    {json.dumps(data['sma200_2y'])},
-      sig:    {sigs_2y}
-    }}
+    "1y":{{labels:{json.dumps(data['dates_1y'])},close:{json.dumps(data['close_1y'])},sma:{json.dumps(data['sma200_1y'])},sig:{sigs_1y}}},
+    "2y":{{labels:{json.dumps(data['dates_2y'])},close:{json.dumps(data['close_2y'])},sma:{json.dumps(data['sma200_2y'])},sig:{sigs_2y}}}
   }};
-
-  var SIG_ALPHA = {{"green":"rgba(40,167,69,0.15)","orange":"rgba(255,193,7,0.2)","red":"rgba(220,53,69,0.15)"}};
-
-  // Plugin zones colorées
-  var bgPlugin = {{
-    id: "bg_{cid}",
-    beforeDatasetsDraw: function(chart) {{
-      var ctx = chart.ctx;
-      var xScale = chart.scales.x;
-      var yScale = chart.scales.y;
-      var sigs = chart._sigs || [];
-      if (!sigs.length || !xScale || !yScale) return;
-      var top = yScale.top, bottom = yScale.bottom;
+  var SIG_ALPHA={{"green":"rgba(40,167,69,0.15)","orange":"rgba(255,193,7,0.2)","red":"rgba(220,53,69,0.15)"}};
+  var bgPlugin={{
+    id:"bg_{cid}",
+    beforeDatasetsDraw:function(chart){{
+      var ctx=chart.ctx,xScale=chart.scales.x,yScale=chart.scales.y,sigs=chart._sigs||[];
+      if(!sigs.length||!xScale||!yScale)return;
+      var top=yScale.top,bottom=yScale.bottom;
       ctx.save();
-      for (var i = 0; i < sigs.length; i++) {{
-        if (!sigs[i]) continue;
-        var color = SIG_ALPHA[sigs[i]];
-        if (!color) continue;
-        var meta = chart.getDatasetMeta(0);
-        if (!meta || !meta.data || !meta.data[i]) continue;
-        var x1 = meta.data[i].x;
-        var x2 = meta.data[i+1] ? meta.data[i+1].x : x1 + 2;
-        ctx.fillStyle = color;
-        ctx.fillRect(x1, top, x2 - x1 + 1, bottom - top);
+      for(var i=0;i<sigs.length;i++){{
+        if(!sigs[i])continue;
+        var color=SIG_ALPHA[sigs[i]];if(!color)continue;
+        var meta=chart.getDatasetMeta(0);
+        if(!meta||!meta.data||!meta.data[i])continue;
+        var x1=meta.data[i].x;
+        var x2=meta.data[i+1]?meta.data[i+1].x:x1+2;
+        ctx.fillStyle=color;ctx.fillRect(x1,top,x2-x1+1,bottom-top);
       }}
       ctx.restore();
     }}
   }};
-
-  var ctx = document.getElementById("{cid}");
-  var chart = new Chart(ctx, {{
-    type: "line",
-    plugins: [bgPlugin],
-    data: {{
-      labels: d["1y"].labels,
-      datasets: [
-        {{
-          label: "Cours",
-          data: d["1y"].close,
-          borderColor: "#1565C0",
-          backgroundColor: "transparent",
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.1,
-          order: 1,
-        }},
-        {{
-          label: "MM200",
-          data: d["1y"].sma,
-          borderColor: "#E65100",
-          borderWidth: 1.5,
-          pointRadius: 0,
-          borderDash: [4,3],
-          fill: false,
-          order: 2,
-        }}
+  var chart=new Chart(document.getElementById("{cid}"),{{
+    type:"line",plugins:[bgPlugin],
+    data:{{
+      labels:d["1y"].labels,
+      datasets:[
+        {{label:"Cours",data:d["1y"].close,borderColor:"#1565C0",backgroundColor:"transparent",borderWidth:1.5,pointRadius:0,tension:0.1,order:1}},
+        {{label:"MM200",data:d["1y"].sma,borderColor:"#E65100",borderWidth:1.5,pointRadius:0,borderDash:[4,3],fill:false,order:2}}
       ]
     }},
-    options: {{
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {{mode:"index", intersect:false}},
-      plugins: {{
-        legend: {{position:"top", labels:{{boxWidth:10, font:{{size:10}}}}}},
-        tooltip: {{
-          callbacks: {{
-            label: function(ctx) {{
-              return ctx.dataset.label + ": " + (ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) : "-");
-            }}
-          }}
-        }}
+    options:{{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{{mode:"index",intersect:false}},
+      plugins:{{
+        legend:{{position:"top",labels:{{boxWidth:10,font:{{size:10}}}}}},
+        tooltip:{{callbacks:{{label:function(ctx){{return ctx.dataset.label+": "+(ctx.parsed.y!=null?ctx.parsed.y.toFixed(2):"-");}}}}}}
       }},
-      scales: {{
-        x: {{ticks:{{maxTicksLimit:8, font:{{size:10}}}}, grid:{{display:false}}}},
-        y: {{
-          ticks: {{
-            font: {{size:10}},
-            callback: function(v) {{
-              if (v >= 1000) return (v/1000).toFixed(0)+"k";
-              return v.toFixed(0);
-            }}
-          }}
-        }}
+      scales:{{
+        x:{{ticks:{{maxTicksLimit:8,font:{{size:10}}}},grid:{{display:false}}}},
+        y:{{ticks:{{font:{{size:10}},callback:function(v){{if(v>=1000)return(v/1000).toFixed(0)+"k";return v.toFixed(0);}}}}}}
       }}
     }}
   }});
-  chart._sigs = d["1y"].sig;
-
-  window.charts = window.charts || {{}};
-  window.charts["{cid}"] = {{chart: chart, data: d}};
+  chart._sigs=d["1y"].sig;
+  window.charts=window.charts||{{}};
+  window.charts["{cid}"]={{chart:chart,data:d}};
 }})();
 </script>"""
 
@@ -440,7 +373,6 @@ def render_chart(name, ticker, small=False):
 os.makedirs("output", exist_ok=True)
 body = ""
 
-# Devises
 body += '<div class="section-title">Devises</div><div class="section-body">'
 for line in DEVISES:
     body += '<div class="devise-line">'
@@ -449,7 +381,6 @@ for line in DEVISES:
     body += '</div>'
 body += '</div>'
 
-# Blocs principaux
 for bloc_name, pairs in BLOCS.items():
     body += f'<div class="section-title">{bloc_name}</div><div class="section-body pairs-grid">'
     for row in pairs:
@@ -460,7 +391,6 @@ for bloc_name, pairs in BLOCS.items():
         body += '</div>'
     body += '</div>'
 
-# Fundsmith
 body += '<div class="section-title">Fundsmith — Top 10 holdings</div><div class="section-body grid2">'
 for name, ticker in FUNDSMITH:
     body += render_chart(name, ticker, small=True)
@@ -481,67 +411,30 @@ html = f"""<!DOCTYPE html>
 body {{ font-family: Arial, sans-serif; background: #ebebeb; padding: 12px; color: #222; }}
 h1 {{ font-size: 1.2em; margin-bottom: 2px; }}
 .updated {{ color: #888; font-size: 0.78em; margin-bottom: 12px; display: block; }}
-
-.section-title {{
-  font-size: 0.9em; font-weight: bold; color: #fff;
-  background: #1a1a2e; padding: 5px 10px;
-  border-radius: 5px 5px 0 0; margin-top: 14px;
-}}
-.section-body {{
-  background: #fff; border: 1px solid #ddd; border-top: none;
-  border-radius: 0 0 5px 5px; padding: 8px;
-}}
-
+.section-title {{ font-size: 0.9em; font-weight: bold; color: #fff; background: #1a1a2e; padding: 5px 10px; border-radius: 5px 5px 0 0; margin-top: 14px; }}
+.section-body {{ background: #fff; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; padding: 8px; }}
 .devise-line {{ display: flex; gap: 8px; margin-bottom: 8px; }}
 .devise-line:last-child {{ margin-bottom: 0; }}
 .devise-line .chart-block {{ flex: 1; min-width: 0; }}
-
-.pairs-grid {{ }}
 .pair-row {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }}
 .pair-row:last-child {{ margin-bottom: 0; }}
-
 .grid2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
-
-.chart-block {{
-  background: #fafafa; border: 1px solid #e0e0e0;
-  border-radius: 5px; padding: 8px; min-width: 0;
-}}
+.chart-block {{ background: #fafafa; border: 1px solid #e0e0e0; border-radius: 5px; padding: 8px; min-width: 0; }}
 .chart-block.empty {{ background: transparent; border: 1px dashed #ddd; }}
 .chart-wrap {{ position: relative; width: 100%; height: 200px; }}
 .chart-block.small .chart-wrap {{ height: 160px; }}
-
-.chart-header {{
-  display: flex; justify-content: space-between;
-  align-items: center; margin-bottom: 5px; gap: 4px;
-}}
-h2 {{
-  font-size: 0.85em; color: #333;
-  display: flex; align-items: baseline;
-  gap: 5px; flex-wrap: wrap; flex: 1; min-width: 0;
-}}
+.chart-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; gap: 4px; }}
+h2 {{ font-size: 0.85em; color: #333; display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; flex: 1; min-width: 0; }}
 .price {{ font-size: 0.8em; color: #666; font-weight: normal; }}
-
 .period-btns {{ display: flex; gap: 2px; flex-shrink: 0; }}
-.btn-period {{
-  padding: 1px 6px; font-size: 0.7em;
-  border: 1px solid #bbb; border-radius: 3px;
-  background: #fff; cursor: pointer; color: #555;
-  white-space: nowrap;
-}}
+.btn-period {{ padding: 1px 6px; font-size: 0.7em; border: 1px solid #bbb; border-radius: 3px; background: #fff; cursor: pointer; color: #555; white-space: nowrap; }}
 .btn-period.active {{ background: #1565C0; color: #fff; border-color: #1565C0; }}
 .btn-period:hover {{ background: #e3f2fd; }}
-
 .indicators {{ display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }}
-.ind {{
-  display: flex; flex-direction: column; align-items: center;
-  background: #f0f0f0; border-radius: 3px;
-  padding: 3px 6px; flex: 1; min-width: 60px;
-}}
+.ind {{ display: flex; flex-direction: column; align-items: center; background: #f0f0f0; border-radius: 3px; padding: 3px 6px; flex: 1; min-width: 60px; }}
 .ind-label {{ font-size: 0.65em; color: #888; margin-bottom: 1px; white-space: nowrap; }}
 .ind-value {{ font-size: 0.85em; font-weight: bold; }}
-
 .no-data {{ color: #bbb; font-size: 0.8em; padding: 20px 0; text-align: center; }}
-
 @media (max-width: 600px) {{
   .pair-row {{ grid-template-columns: 1fr; }}
   .grid2 {{ grid-template-columns: 1fr; }}
@@ -575,12 +468,11 @@ function setPeriod(cid, period, btn) {{
   }});
   btn.classList.add("active");
 }}
-<script>
+
 function refreshDashboard() {{
   var btn = document.getElementById("refresh-btn");
   btn.textContent = "⏳ En cours...";
   btn.disabled = true;
-  
   fetch("https://api.github.com/repos/Issi-Vest/etf-dashboard/actions/workflows/dashboard.yml/dispatches", {{
     method: "POST",
     headers: {{
@@ -592,13 +484,13 @@ function refreshDashboard() {{
   }})
   .then(function(r) {{
     if (r.status === 204) {{
-      btn.textContent = "✅ Lancé ! (~2min)";
+      btn.textContent = "✅ Lancé ! Recharger dans 2min";
       setTimeout(function() {{
         btn.textContent = "🔄 Actualiser";
         btn.disabled = false;
       }}, 120000);
     }} else {{
-      btn.textContent = "❌ Erreur";
+      btn.textContent = "❌ Erreur " + r.status;
       btn.disabled = false;
     }}
   }})
