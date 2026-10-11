@@ -20,7 +20,7 @@ except Exception as e:
 now = datetime.now(ZoneInfo("Europe/Paris"))
 print(f"Heure: {now}")
 
-dispatch_token = os.environ.get("GITHUB_DISPATCH_TOKEN", "")
+dispatch_token = os.environ.get("DISPATCH_TOKEN", "")
 
 # =========================
 # STRUCTURE DES BLOCS
