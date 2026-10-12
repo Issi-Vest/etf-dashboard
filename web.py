@@ -32,19 +32,20 @@ BLOCS = {
     "Indices actions": [
         ("SP500",         "^GSPC",     "PSP5",          "PSP5.PA"),
         ("NDQ",           "^NDX",      "PUST",          "PUST.PA"),
+        ("DJI",           "^DJI",      "PDJE",          "PDJE.PA"),
+        ("RUSSELL 2000",  "^RUT",      "RS2K",          "RS2K.PA"),  
+        ("EURO STOXX 50", "^STOXX50E", "MFED",          "MFED.PA"),    
         ("DAX",           "^GDAXI",    "CG1 (DAX)",     "CG1.PA"),
         ("PX1GR (CAC)",   "PX1GR.PA",  "CACC (CAC GR)", "CACC.PA"),
-        ("EURO STOXX 50", "^STOXX50E", "MFED",          "MFED.PA"),
-        ("DJI",           "^DJI",      "PDJE",          "PDJE.PA"),
-        ("RUSSELL 2000",  "^RUT",      "RS2K",          "RS2K.PA"),
     ],
     "Matières premières": [
         ("XAUUSD", "GC=F",   "4GLD (XETRA)", "4GLD.DE"),
         ("XAGUSD", "SI=F",   None,            None),
+        ("DBC",    "DBC",    "ICOM",          "ICOM.L"),
+        ("DBA", "DBA", "AGAP", "AGAP.PA"),
         ("UKOIL",  "BZ=F",   "NRJ",           "NRJ.PA"),
         ("HG1!",   "HG=F",   "COPAP",         "COPAP.PA"),
         ("ALUM",   "ALUM.L", None,            None),
-        ("DBC",    "DBC",    "ICOM",          "ICOM.L"),
     ],
     "Crypto": [
         ("BTCUSDT", "BTC-USD", "ETHUSDT", "ETH-USD"),
@@ -55,6 +56,7 @@ BLOCS = {
         ("TSLA",  "TSLA",    "MC",    "MC.PA"),
         ("HO",    "HO.PA",   "ALFPC", "ALFPC.PA"),
         ("BUCN",  "BUCN.SW", "PM",    "PM"),
+        ("MC", "MC.PA", "TTE", "TTE.PA"),
     ],
 }
 
@@ -85,6 +87,9 @@ FUNDSMITH_TICKERS = {
     "Zoetis": "ZTS",
     "LVMH": "MC.PA",
     "Nike": "NKE",
+    "Mastercard": "MA",
+    "Veeva Systems": "VEEV",
+    "Uber": "UBER",
 }
 
 # =========================
@@ -160,6 +165,7 @@ def fetch_data(ticker):
         if hasattr(close, "squeeze"):
             close = close.squeeze()
         if not isinstance(close, pd.Series):
+            print(f"  -> {ticker} : Close n'est pas une Series ({type(close)})")
             return None
         close = close.dropna()
 
