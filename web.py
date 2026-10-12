@@ -42,7 +42,7 @@ BLOCS = {
         ("XAUUSD", "GC=F",   "4GLD (XETRA)", "4GLD.DE"),
         ("XAGUSD", "SI=F",   None,            None),
         ("DBC",    "DBC",    "ICOM",          "ICOM.L"),
-        ("DBA", "DBA", "AGAP", "AGAP.PA"),
+        ("DBA", "DBA", "AGAP", "AGAP.L"),
         ("UKOIL",  "BZ=F",   "NRJ",           "NRJ.PA"),
         ("HG1!",   "HG=F",   "COPAP",         "COPAP.PA"),
         ("ALUM",   "ALUM.L", None,            None),
@@ -207,6 +207,14 @@ def fetch_data(ticker):
         n1y = min(252, len(close))
 
         return {
+            "dates_3m":   dates_all[-63:],
+            "close_3m":   close_all[-63:],
+            "sma200_3m":  sma200_all[-63:],
+            "signals_3m": signals_daily[-63:],
+            "dates_6m":   dates_all[-126:],
+            "close_6m":   close_all[-126:],
+            "sma200_6m":  sma200_all[-126:],
+            "signals_6m": signals_daily[-126:],            
             "dates_1y":   dates_all[-n1y:],
             "close_1y":   close_all[-n1y:],
             "sma200_1y":  sma200_all[-n1y:],
@@ -219,6 +227,10 @@ def fetch_data(ticker):
             "v1y":    round(float(v1y_minus3), 1),
             "mm200":  round(float(mm200), 1),
             "last":   round(float(close.iloc[-1]), 4),
+            "daily_change": round((float(close.iloc[-1]) - float(close.iloc[-2])) / float(close.iloc[-2]) * 100, 2) if len(close) >= 2 else 0,
+            "last_date": close.index[-1].strftime("%d/%m %Hh%M"),
+            "ath_2y": round(float(close.max()), 4),
+            "ath_pct": round((float(close.iloc[-1]) - float(close.max())) / float(close.max()) * 100, 1),
         }
     except Exception as e:
         print(f"  -> ERREUR: {e}")
@@ -288,6 +300,7 @@ def render_chart(name, ticker, small=False):
         sig = "⚠️"
     else:
         sig = "🚨"
+   ath_badge = " 🏆" if data['ath_pct'] >= -2 else ""     
 
     sigs_1y = json.dumps(data['signals_1y'])
     sigs_2y = json.dumps(data['signals_2y'])
@@ -295,10 +308,15 @@ def render_chart(name, ticker, small=False):
 
     return f"""<div class="{css_class}">
   <div class="chart-header">
-    <h2>{sig} {name} <span class="price">{fmt_price(data['last'])}</span></h2>
+    <h2>{sig} {name}{ath_badge} <span class="price">{fmt_price(data['last'])}</span>
+    <span class="daily" style="color:{indicator_color(data['daily_change'])};font-size:0.8em">
+      {fmt(data['daily_change'])} — {data['last_date']}
+    </span></h2>
     <div class="period-btns">
-      <button class="btn-period active" onclick="setPeriod('{cid}','1y',this)">1a</button>
-      <button class="btn-period" onclick="setPeriod('{cid}','2y',this)">2a</button>
+    <button class="btn-period" onclick="setPeriod('{cid}','3m',this)">3m</button>
+    <button class="btn-period" onclick="setPeriod('{cid}','6m',this)">6m</button>
+    <button class="btn-period active" onclick="setPeriod('{cid}','1y',this)">1a</button>
+    <button class="btn-period" onclick="setPeriod('{cid}','2y',this)">2a</button>
     </div>
   </div>
   <div class="chart-wrap" style="height:{height}px">
@@ -317,11 +335,16 @@ def render_chart(name, ticker, small=False):
       <span class="ind-label">MM200</span>
       <span class="ind-value" style="color:{indicator_color(data['mm200'])}">{fmt(data['mm200'])}</span>
     </div>
-  </div>
+    <div class="ind">
+      <span class="ind-label">ATH 2Y</span>
+      <span class="ind-value" style="color:{indicator_color(data['ath_pct'])}">{fmt(data['ath_pct'])}</span>
+    </div>
 </div>
 <script>
 (function(){{
   var d = {{
+    "3m":{{labels:{json.dumps(data['dates_3m'])},close:{json.dumps(data['close_3m'])},sma:{json.dumps(data['sma200_3m'])},sig:{json.dumps(data['signals_3m'])}}},
+    "6m":{{labels:{json.dumps(data['dates_6m'])},close:{json.dumps(data['close_6m'])},sma:{json.dumps(data['sma200_6m'])},sig:{json.dumps(data['signals_6m'])}}},
     "1y":{{labels:{json.dumps(data['dates_1y'])},close:{json.dumps(data['close_1y'])},sma:{json.dumps(data['sma200_1y'])},sig:{sigs_1y}}},
     "2y":{{labels:{json.dumps(data['dates_2y'])},close:{json.dumps(data['close_2y'])},sma:{json.dumps(data['sma200_2y'])},sig:{sigs_2y}}}
   }};
@@ -370,6 +393,13 @@ def render_chart(name, ticker, small=False):
   chart._sigs=d["1y"].sig;
   window.charts=window.charts||{{}};
   window.charts["{cid}"]={{chart:chart,data:d}};
+
+  // ATH line
+  chart.options.plugins.annotation = {{
+    annotations: {{ athLine: {{ type: "line", yMin: {data['ath_2y']}, yMax: {data['ath_2y']}, borderColor: "rgba(255,215,0,0.8)", borderWidth: 1, borderDash: [4,3], label: {{ display: true, content: "ATH", position: "end", font: {{size:9}}, color:"#aaa", backgroundColor:"transparent" }} }} }}
+  }};
+  chart.update();
+
 }})();
 </script>"""
 
