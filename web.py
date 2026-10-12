@@ -300,7 +300,7 @@ def render_chart(name, ticker, small=False):
         sig = "⚠️"
     else:
         sig = "🚨"
-   ath_badge = " 🏆" if data['ath_pct'] >= -2 else ""     
+    ath_badge = " 🏆" if data['ath_pct'] >= -2 else ""     
 
     sigs_1y = json.dumps(data['signals_1y'])
     sigs_2y = json.dumps(data['signals_2y'])
@@ -314,8 +314,8 @@ def render_chart(name, ticker, small=False):
     </span></h2>
     <div class="period-btns">
     <button class="btn-period" onclick="setPeriod('{cid}','3m',this)">3m</button>
-    <button class="btn-period" onclick="setPeriod('{cid}','6m',this)">6m</button>
-    <button class="btn-period active" onclick="setPeriod('{cid}','1y',this)">1a</button>
+    <button class="btn-period active" onclick="setPeriod('{cid}','6m',this)">6m</button>
+    <button class="btn-period" onclick="setPeriod('{cid}','1y',this)">1a</button>
     <button class="btn-period" onclick="setPeriod('{cid}','2y',this)">2a</button>
     </div>
   </div>
@@ -371,10 +371,10 @@ def render_chart(name, ticker, small=False):
   var chart=new Chart(document.getElementById("{cid}"),{{
     type:"line",plugins:[bgPlugin],
     data:{{
-      labels:d["1y"].labels,
+      labels:d["6m"].labels,
       datasets:[
-        {{label:"Cours",data:d["1y"].close,borderColor:"#1565C0",backgroundColor:"transparent",borderWidth:1.5,pointRadius:0,tension:0.1,order:1}},
-        {{label:"MM200",data:d["1y"].sma,borderColor:"#E65100",borderWidth:1.5,pointRadius:0,borderDash:[4,3],fill:false,order:2}}
+        {{label:"Cours",data:d["6m"].close,borderColor:"#1565C0",backgroundColor:"transparent",borderWidth:1.5,pointRadius:0,tension:0.1,order:1}},
+        {{label:"MM200",data:d["6m"].sma,borderColor:"#E65100",borderWidth:1.5,pointRadius:0,borderDash:[4,3],fill:false,order:2}}
       ]
     }},
     options:{{
@@ -390,7 +390,7 @@ def render_chart(name, ticker, small=False):
       }}
     }}
   }});
-  chart._sigs=d["1y"].sig;
+  chart._sigs=d["6m"].sig;
   window.charts=window.charts||{{}};
   window.charts["{cid}"]={{chart:chart,data:d}};
 
