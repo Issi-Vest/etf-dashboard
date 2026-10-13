@@ -339,6 +339,7 @@ def render_chart(name, ticker, small=False):
       <span class="ind-label">ATH 2Y</span>
       <span class="ind-value" style="color:{indicator_color(data['ath_pct'])}">{fmt(data['ath_pct'])}</span>
     </div>
+  </div>
 </div>
 <script>
 (function(){{
@@ -393,13 +394,6 @@ def render_chart(name, ticker, small=False):
   chart._sigs=d["6m"].sig;
   window.charts=window.charts||{{}};
   window.charts["{cid}"]={{chart:chart,data:d}};
-
-  // ATH line
-  chart.options.plugins.annotation = {{
-    annotations: {{ athLine: {{ type: "line", yMin: {data['ath_2y']}, yMax: {data['ath_2y']}, borderColor: "rgba(255,215,0,0.8)", borderWidth: 1, borderDash: [4,3], label: {{ display: true, content: "ATH", position: "end", font: {{size:9}}, color:"#aaa", backgroundColor:"transparent" }} }} }}
-  }};
-  chart.update();
-
 }})();
 </script>"""
 
