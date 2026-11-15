@@ -50,6 +50,7 @@ BLOCS = {
         ("XAUUSD", "GC=F",   "4GLD (XETRA)", "4GLD.DE"),
         ("XAGUSD", "SI=F",   None,            None),
         ("DBC",    "DBC",    "ICOM",          "ICOM.L"),
+        ("COMO", "COMO.PA",   None,            None),
         ("DBA", "DBA", "AGAP", "AGAP.L"),
         ("UKOIL",  "BZ=F",   "NRJ",           "NRJ.PA"),
         ("HG1!",   "HG=F",   "COPAP",         "COPAP.PA"),
@@ -67,7 +68,10 @@ BLOCS = {
         ("TSLA",  "TSLA",    "MC",    "MC.PA"),
         ("HO",    "HO.PA",   "ALFPC", "ALFPC.PA"),
         ("BUCN",  "BUCN.SW", "PM",    "PM"),
+        ("IDEXX", "IDXX", "ADP", "ADP"),
         ("MC", "MC.PA", "TTE", "TTE.PA"),
+        ("REALTY INCOME", "O", "WPC", "WPC"),
+        ("VICI", "VICI", "NHI", "NHI"),
     ],
 }
 
@@ -102,7 +106,7 @@ FUNDSMITH_TICKERS = {
     "Veeva Systems": "VEEV",
     "Uber": "UBER",
     "Sage": "SGE.L"
-    "Yum! Brands": "YUM"
+    "Yum Brands": "YUM"
 }
 
 # =========================
