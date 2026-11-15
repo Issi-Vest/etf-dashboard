@@ -397,32 +397,51 @@ def render_chart(name, ticker, small=False):
 }})();
 </script>"""
 
-def tv_widget(symbol, height=220):
-    cfg = json.dumps({
-        "symbol": symbol,
-        "width": "100%",
-        "height": height,
-        "locale": "fr",
-        "dateRange": "12M",
-        "colorTheme": "light",
-        "isTransparent": False,
-        "autosize": True,
-        "largeChartUrl": ""
-    })
+# =========================
+# TAUX D'INTERET (valeur du jour, TradingView)
+# =========================
+TAUX = [
+    ("FR 1 an",  "FR01Y", "FR 10 ans", "FR10Y"),
+    ("US 1 an",  "US01Y", "US 10 ans", "US10Y"),
+    ("CH 1 an",  "CH01Y", "CH 10 ans", "CH10Y"),
+]
+
+def fetch_taux_tv(code):
+    url = f"https://fr.tradingview.com/symbols/TVC-{code}/"
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
+                "Accept-Encoding": "identity",
+            }
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            page = resp.read().decode("utf-8", errors="ignore")
+        m = re.search(r"Le rendement actuel est de\s*([\d.,]+)\s*%", page)
+        if m:
+            val = float(m.group(1).replace(",", "."))
+            print(f"Taux {code}: {val}")
+            return val
+        print(f"Taux {code}: valeur non trouvée dans la page")
+    except Exception as e:
+        print(f"Taux {code}: ERREUR - {e}")
+    return None
+
+def taux_card(label, code):
+    val = fetch_taux_tv(code)
+    txt = (f"{val:.3f}".replace(".", ",") + " %") if val is not None else "indisponible"
+    link = f"https://fr.tradingview.com/chart/?symbol=TVC%3A{code}"
     return (
         '<div class="chart-block">'
-        '<div class="tradingview-widget-container">'
-        '<script type="text/javascript" '
-        'src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>'
-        + cfg +
-        '</script></div></div>'
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+        f'<b>{label}</b>'
+        f'<span style="font-size:1.3em;font-weight:bold">{txt}</span>'
+        f'<a href="{link}" target="_blank" style="font-size:0.8em;color:#1565C0">Graphique ↗</a>'
+        '</div></div>'
     )
-
-TAUX = [
-    ("TVC:FR01Y", "TVC:FR10Y"),
-    ("TVC:US01Y", "TVC:US10Y"),
-    ("TVC:CH01Y", "TVC:CH10Y"),
-]
 
 # =========================
 # CONSTRUCTION PAGE
@@ -439,8 +458,8 @@ for line in DEVISES:
 body += '</div>'
 
 body += '<div class="section-title">Taux d\'intérêt (1 an | 10 ans)</div><div class="section-body pairs-grid">'
-for left, right in TAUX:
-    body += '<div class="pair-row">' + tv_widget(left) + tv_widget(right) + '</div>'
+for l1, c1, l2, c2 in TAUX:
+    body += '<div class="pair-row">' + taux_card(l1, c1) + taux_card(l2, c2) + '</div>'
 body += '</div>'
 
 for bloc_name, pairs in BLOCS.items():
@@ -567,5 +586,9 @@ function refreshDashboard() {{
 
 with open("output/index.html", "w", encoding="utf-8") as f:
     f.write(html)
+
+h = yf.Ticker("PX1GR.PA").history(period="2y", interval="1d")
+print("TEST PX1GR history:", len(h), "lignes")
+print(h.tail(3))
 
 print("Dashboard généré.")
