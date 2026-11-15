@@ -397,6 +397,33 @@ def render_chart(name, ticker, small=False):
 }})();
 </script>"""
 
+def tv_widget(symbol, height=220):
+    cfg = json.dumps({
+        "symbol": symbol,
+        "width": "100%",
+        "height": height,
+        "locale": "fr",
+        "dateRange": "12M",
+        "colorTheme": "light",
+        "isTransparent": False,
+        "autosize": True,
+        "largeChartUrl": ""
+    })
+    return (
+        '<div class="chart-block">'
+        '<div class="tradingview-widget-container">'
+        '<script type="text/javascript" '
+        'src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>'
+        + cfg +
+        '</script></div></div>'
+    )
+
+TAUX = [
+    ("TVC:FR01Y", "TVC:FR10Y"),
+    ("TVC:US01Y", "TVC:US10Y"),
+    ("TVC:CH01Y", "TVC:CH10Y"),
+]
+
 # =========================
 # CONSTRUCTION PAGE
 # =========================
@@ -409,6 +436,11 @@ for line in DEVISES:
     for name, ticker in line:
         body += render_chart(name, ticker, small=True)
     body += '</div>'
+body += '</div>'
+
+body += '<div class="section-title">Taux d\'intérêt (1 an | 10 ans)</div><div class="section-body pairs-grid">'
+for left, right in TAUX:
+    body += '<div class="pair-row">' + tv_widget(left) + tv_widget(right) + '</div>'
 body += '</div>'
 
 for bloc_name, pairs in BLOCS.items():
