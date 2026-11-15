@@ -29,14 +29,22 @@ dispatch_token = os.environ.get("DISPATCH_TOKEN", "")
 # STRUCTURE DES BLOCS
 # =========================
 BLOCS = {
+        "ETF sur taux": [
+        ("PR1T (LSE)", "PR1T.L",  "PR1T (XETRA)", "PR1T.DE"),
+        ("YCSH",       "YCSH.AS", None,            None),
+    ],
+    
     "Indices actions": [
+        ("MSCI WORLD",         "^990100-USD-STRD",     "DCAM",          "DCAM.PA"),
         ("SP500",         "^GSPC",     "PSP5",          "PSP5.PA"),
         ("NDQ",           "^NDX",      "PUST",          "PUST.PA"),
         ("DJI",           "^DJI",      "PDJE",          "PDJE.PA"),
         ("RUSSELL 2000",  "^RUT",      "RS2K",          "RS2K.PA"),  
         ("EURO STOXX 50", "^STOXX50E", "MFED",          "MFED.PA"),    
         ("DAX",           "^GDAXI",    "CG1 (DAX)",     "CG1.PA"),
-        ("PX1GR (CAC)",   "PX1GR.PA",  "CACC (CAC GR)", "CACC.PA"),
+        ("CAC 40 (dividendes non réinvestis)",   "^FCHI",  "CACC (CAC GR)", "CACC.PA"),
+        ("GRE",           "GRE.PA",    "INR",     "INR.PA"),
+        
     ],
     "Matières premières": [
         ("XAUUSD", "GC=F",   "4GLD (XETRA)", "4GLD.DE"),
@@ -45,8 +53,11 @@ BLOCS = {
         ("DBA", "DBA", "AGAP", "AGAP.L"),
         ("UKOIL",  "BZ=F",   "NRJ",           "NRJ.PA"),
         ("HG1!",   "HG=F",   "COPAP",         "COPAP.PA"),
-        ("ALUM",   "ALUM.L", None,            None),
+        ("ALUM",   "ALUM.L", "PHAG",            "PHAG.AS"),
+        ("RING",   "RING", "GLDM",            "GLDM"),
+        ("NRJ.PA",   "NRJ", "Oil&Gas",            "IOGP.AS"),
     ],
+    
     "Crypto": [
         ("BTCUSDT", "BTC-USD", "ETHUSDT", "ETH-USD"),
         ("XRPUSDT", "XRP-USD", "SOLUSDT", "SOL-USD"),
@@ -90,6 +101,8 @@ FUNDSMITH_TICKERS = {
     "Mastercard": "MA",
     "Veeva Systems": "VEEV",
     "Uber": "UBER",
+    "Sage": "SGE.L"
+    "Yum! Brands": "YUM"
 }
 
 # =========================
@@ -402,6 +415,7 @@ def render_chart(name, ticker, small=False):
 # =========================
 TAUX = [
     ("FR 1 an",  "FR01Y", "FR 10 ans", "FR10Y"),
+    ("DE 1 an",  "DE01Y", "DE 10 ans", "DE10Y"),
     ("US 1 an",  "US01Y", "US 10 ans", "US10Y"),
     ("CH 1 an",  "CH01Y", "CH 10 ans", "CH10Y"),
 ]
@@ -586,9 +600,5 @@ function refreshDashboard() {{
 
 with open("output/index.html", "w", encoding="utf-8") as f:
     f.write(html)
-
-h = yf.Ticker("PX1GR.PA").history(period="2y", interval="1d")
-print("TEST PX1GR history:", len(h), "lignes")
-print(h.tail(3))
 
 print("Dashboard généré.")
