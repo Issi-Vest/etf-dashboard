@@ -28,6 +28,9 @@ dispatch_token = os.environ.get("DISPATCH_TOKEN", "")
 # =========================
 # STRUCTURE DES BLOCS
 # =========================
+
+TAUX_ETF = {"PR1T.L", "PR1T.DE", "YCSH.AS"}
+
 BLOCS = {
         "ETF sur taux": [
         ("PR1T (LSE)", "PR1T.L",  "PR1T (XETRA)", "PR1T.DE"),
@@ -105,8 +108,8 @@ FUNDSMITH_TICKERS = {
     "Mastercard": "MA",
     "Veeva Systems": "VEEV",
     "Uber": "UBER",
-    "Sage": "SGE.L"
-    "Yum Brands": "YUM"
+    "Sage": "SGE.L",
+    "Yum! Brands": "YUM"
 }
 
 # =========================
@@ -223,6 +226,13 @@ def fetch_data(ticker):
         sma200_all = [round(float(v), 4) if not pd.isna(v) else None for v in sma200]
         n1y = min(252, len(close))
 
+        # Variation sur 2 mois calendaires, x6 = taux annualisé
+        perf_2m_x6 = None
+        cible = close.index[-1] - pd.DateOffset(months=2)
+        passe = close[close.index <= cible]
+        if len(passe) > 0 and float(passe.iloc[-1]) != 0:
+            perf_2m_x6 = (float(close.iloc[-1]) / float(passe.iloc[-1]) - 1) * 100 * 6
+        
         return {
             "dates_3m":   dates_all[-63:],
             "close_3m":   close_all[-63:],
@@ -248,6 +258,7 @@ def fetch_data(ticker):
             "last_date": close.index[-1].strftime("%d/%m %Hh%M"),
             "ath_2y": round(float(close.max()), 4),
             "ath_pct": round((float(close.iloc[-1]) - float(close.max())) / float(close.max()) * 100, 1),
+            "perf_2m_x6": round(perf_2m_x6, 1) if perf_2m_x6 is not None else None,
         }
     except Exception as e:
         print(f"  -> ERREUR: {e}")
@@ -319,6 +330,13 @@ def render_chart(name, ticker, small=False):
         sig = "🚨"
     ath_badge = " 🏆" if data['ath_pct'] >= -2 else ""     
 
+    extra_ind = ""
+    if ticker in TAUX_ETF and data.get("perf_2m_x6") is not None:
+        extra_ind = (
+            '<div class="ind"><span class="ind-label">2M x6 (annualisé)</span>'
+            f'<span class="ind-value" style="color:{indicator_color(data["perf_2m_x6"])}">{fmt(data["perf_2m_x6"])}</span></div>'
+        )
+    
     sigs_1y = json.dumps(data['signals_1y'])
     sigs_2y = json.dumps(data['signals_2y'])
     css_class = "chart-block small" if small else "chart-block"
@@ -356,6 +374,7 @@ def render_chart(name, ticker, small=False):
       <span class="ind-label">ATH 2Y</span>
       <span class="ind-value" style="color:{indicator_color(data['ath_pct'])}">{fmt(data['ath_pct'])}</span>
     </div>
+    {extra_ind}
   </div>
 </div>
 <script>
