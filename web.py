@@ -51,15 +51,15 @@ BLOCS = {
     ],
     "Matières premières": [
         ("XAUUSD", "GC=F",   "4GLD (XETRA)", "4GLD.DE"),
-        ("XAGUSD", "SI=F",   None,            None),
+        ("XAGUSD", "SI=F", "PHAG",            "PHAG.AS"),
+        ("RING",   "RING", "GLDM",            "GLDM"),
         ("DBC",    "DBC",    "ICOM",          "ICOM.L"),
         ("COMO", "COMO.PA",   None,            None),
         ("DBA", "DBA", "AGAP", "AGAP.L"),
-        ("UKOIL",  "BZ=F",   "NRJ",           "NRJ.PA"),
+        ("UKOIL",  "BZ=F",   "Oil&Gas",           "IOGP.AS"),
+        ("NRJ",   "NRJ.PA",   None,            None),
         ("HG1!",   "HG=F",   "COPAP",         "COPAP.PA"),
         ("ALUM",   "ALUM.L", "PHAG",            "PHAG.AS"),
-        ("RING",   "RING", "GLDM",            "GLDM"),
-        ("NRJ.PA",   "NRJ", "Oil&Gas",            "IOGP.AS"),
     ],
     
     "Crypto": [
@@ -481,6 +481,35 @@ def taux_card(label, code):
     )
 
 # =========================
+# PORTEFEUILLE FUNDSMITH EQUIPONDERE
+# =========================
+def perf_30j(data):
+    dates = pd.to_datetime(data["dates_2y"])
+    closes = data["close_2y"]
+    cible = dates[-1] - pd.Timedelta(days=30)
+    idx = [i for i, d in enumerate(dates) if d <= cible]
+    if not idx:
+        return None
+    base = closes[idx[-1]]
+    if not base:
+        return None
+    return (closes[-1] / base - 1) * 100
+
+def portefeuille_fundsmith():
+    perfs = []
+    for name, ticker in FUNDSMITH:
+        d = get_data(name, ticker) if ticker else None
+        p = perf_30j(d) if d else None
+        if p is not None:
+            perfs.append(p)
+    if not perfs:
+        return None, 0
+    return sum(perfs) / len(perfs), len(perfs)
+
+perf_pf, n_pf = portefeuille_fundsmith()
+print(f"Portefeuille Fundsmith 30j: {perf_pf} ({n_pf} titres)")
+
+# =========================
 # CONSTRUCTION PAGE
 # =========================
 os.makedirs("output", exist_ok=True)
@@ -510,6 +539,19 @@ for bloc_name, pairs in BLOCS.items():
     body += '</div>'
 
 body += '<div class="section-title">Fundsmith — Top 10 holdings</div><div class="section-body grid2">'
+if perf_pf is not None:
+    body += (
+        '<div class="chart-block" style="grid-column:1/-1">'
+        '<b>Portefeuille équipondéré (10 % par titre), 30 derniers jours : </b>'
+        f'<span style="font-size:1.2em;font-weight:bold;color:{indicator_color(perf_pf)}">{fmt(perf_pf)}</span>'
+        f' <span style="color:#888;font-size:0.8em">({n_pf}/10 titres)</span>'
+        '<div style="color:#888;font-size:0.75em;margin-top:4px">'
+        'Note : variation sur 30 jours calendaires (et non 30 séances de bourse). '
+        'Cours en devise locale : l\'effet de change n\'est pas pris en compte '
+        '(par exemple L\'Oréal est en euros, Visa en dollars).'
+        '</div>'
+        '</div>'
+    )
 for name, ticker in FUNDSMITH:
     body += render_chart(name, ticker, small=True)
 body += '</div>'
