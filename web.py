@@ -340,6 +340,9 @@ def render_chart(name, ticker, small=False):
     sigs_1y = json.dumps(data['signals_1y'])
     sigs_2y = json.dumps(data['signals_2y'])
     css_class = "chart-block small" if small else "chart-block"
+    css_class = "chart-block small" if small else "chart-block"
+    if data['mm200'] < 0:
+        css_class += " below-mm"
 
     return f"""<div class="{css_class}">
   <div class="chart-header">
@@ -581,7 +584,8 @@ h1 {{ font-size: 1.2em; margin-bottom: 2px; }}
 .grid2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
 .chart-block {{ background: #fafafa; border: 1px solid #e0e0e0; border-radius: 5px; padding: 8px; min-width: 0; }}
 .chart-block.empty {{ background: transparent; border: 1px dashed #ddd; }}
-.chart-wrap {{ position: relative; width: 100%; height: 200px; }}
+.chart-block.below-mm {{ background: #fdecec; border-color: #e57373; }}
+.chart-wrap {{ position: relative; width: 100%; height: 200px; background: #fafafa; border-radius: 4px; }}
 .chart-block.small .chart-wrap {{ height: 160px; }}
 .chart-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; gap: 4px; }}
 h2 {{ font-size: 0.85em; color: #333; display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; flex: 1; min-width: 0; }}
