@@ -20,6 +20,12 @@ try:
 except Exception as e:
     print(f"ERREUR pandas: {e}")
 
+try:
+    from notes import NOTES
+except Exception as e:
+    print(f"notes.py non chargé: {e}")
+    NOTES = {}
+
 now = datetime.now(ZoneInfo("Europe/Paris"))
 print(f"Heure: {now}")
 
@@ -343,7 +349,9 @@ def render_chart(name, ticker, small=False):
     css_class = "chart-block small" if small else "chart-block"
     if data['mm200'] < 0:
         css_class += " below-mm"
-
+    note = NOTES.get(name, "")
+    note_html = f'<div class="note">{html_module.escape(note)}</div>' if note else ""
+    
     return f"""<div class="{css_class}">
   <div class="chart-header">
     <h2>{sig} {name}{ath_badge} <span class="price">{fmt_price(data['last'])}</span>
@@ -379,6 +387,7 @@ def render_chart(name, ticker, small=False):
     </div>
     {extra_ind}
   </div>
+  {note_html}
 </div>
 <script>
 (function(){{
@@ -599,6 +608,7 @@ h2 {{ font-size: 0.85em; color: #333; display: flex; align-items: baseline; gap:
 .ind-label {{ font-size: 0.65em; color: #888; margin-bottom: 1px; white-space: nowrap; }}
 .ind-value {{ font-size: 0.85em; font-weight: bold; }}
 .no-data {{ color: #bbb; font-size: 0.8em; padding: 20px 0; text-align: center; }}
+.note {{ margin-top: 6px; padding: 5px 8px; background: #fff8e1; border-left: 3px solid #f9a825; font-size: 0.75em; color: #555; white-space: pre-line; }}
 @media (max-width: 600px) {{
   .pair-row {{ grid-template-columns: 1fr; }}
   .grid2 {{ grid-template-columns: 1fr; }}
