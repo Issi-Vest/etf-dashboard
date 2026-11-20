@@ -53,6 +53,7 @@ BLOCS = {
         ("DAX",           "^GDAXI",    "CG1 (DAX)",     "CG1.PA"),
         ("CAC 40 (dividendes non réinvestis)",   "^FCHI",  "CACC (CAC GR)", "CACC.PA"),
         ("GRE",           "GRE.PA",    "INR",     "INR.PA"),
+        ("Emergents (EUNM)", "EUNM.DE",   None,            None),
         
     ],
     "Matières premières": [
@@ -71,6 +72,7 @@ BLOCS = {
     "Crypto": [
         ("BTCUSDT", "BTC-USD", "ETHUSDT", "ETH-USD"),
         ("XRPUSDT", "XRP-USD", "SOLUSDT", "SOL-USD"),
+        ("BLOK", "BLOK", "Blokchain technology (CBUT)", "CBUT.DE"),
     ],
     "Autres actions": [
         ("NVDA",  "NVDA",    "MSFT",  "MSFT"),
@@ -524,8 +526,38 @@ print(f"Portefeuille Fundsmith 30j: {perf_pf} ({n_pf} titres)")
 # =========================
 # CONSTRUCTION PAGE
 # =========================
+
+try:
+    from notes import ALERTES
+except Exception as e:
+    print(f"ALERTES non chargées: {e}")
+    ALERTES = []
+    
+try:
+    from notes import MEMO
+except Exception as e:
+    print(f"MEMO non chargé: {e}")
+    MEMO = ""
+
 os.makedirs("output", exist_ok=True)
 body = ""
+
+body += '<div class="section-title">🔔 Alertes</div><div class="section-body">'
+if ALERTES:
+    body += '<ul style="margin-left:18px;font-size:0.85em">'
+    for a in ALERTES:
+        body += f'<li>{html_module.escape(a)}</li>'
+    body += '</ul>'
+else:
+    body += '<p class="no-data" style="padding:8px 0">Aucune alerte pour le moment.</p>'
+body += '</div>'
+
+body += '<div class="section-title">📝 Mémo</div><div class="section-body">'
+if MEMO.strip():
+    body += f'<div class="memo">{html_module.escape(MEMO.strip())}</div>'
+else:
+    body += '<p class="no-data" style="padding:8px 0">Mémo vide.</p>'
+body += '</div>'
 
 body += '<div class="section-title">Devises</div><div class="section-body">'
 for line in DEVISES:
@@ -609,6 +641,7 @@ h2 {{ font-size: 0.85em; color: #333; display: flex; align-items: baseline; gap:
 .ind-value {{ font-size: 0.85em; font-weight: bold; }}
 .no-data {{ color: #bbb; font-size: 0.8em; padding: 20px 0; text-align: center; }}
 .note {{ margin-top: 6px; padding: 5px 8px; background: #fff8e1; border-left: 3px solid #f9a825; font-size: 0.75em; color: #555; white-space: pre-line; }}
+.memo {{ white-space: pre-line; font-size: 0.9em; font-family: "Segoe Print", "Bradley Hand", cursive; background: #fffde7; padding: 8px 10px; border-radius: 4px; line-height: 1.5; }}
 @media (max-width: 600px) {{
   .pair-row {{ grid-template-columns: 1fr; }}
   .grid2 {{ grid-template-columns: 1fr; }}
