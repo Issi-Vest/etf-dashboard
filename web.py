@@ -534,6 +534,9 @@ def taux_card(label, code):
 # PORTEFEUILLE FUNDSMITH EQUIPONDERE
 # =========================
 def perf_30j(data):
+    if not isinstance(data, dict) or "dates_2y" not in data:
+        print(f"  PF: données inattendues (type {type(data).__name__})")
+        return None
     dates = pd.to_datetime(data["dates_2y"])
     closes = data["close_2y"]
     cible = dates[-1] - pd.Timedelta(days=30)
@@ -556,7 +559,11 @@ def portefeuille_fundsmith():
         return None, 0
     return sum(perfs) / len(perfs), len(perfs)
 
-perf_pf, n_pf = portefeuille_fundsmith()
+try:
+    perf_pf, n_pf = portefeuille_fundsmith()
+except Exception as e:
+    print(f"Portefeuille Fundsmith: ERREUR - {e}")
+    perf_pf, n_pf = None, 0
 print(f"Portefeuille Fundsmith 30j: {perf_pf} ({n_pf} titres)")
 
 # =========================
