@@ -136,7 +136,30 @@ def fetch_fundsmith_holdings():
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
             html_content = resp.read().decode("utf-8")
+      
+        month = ""
+        month_match = re.search(r"Portfolio Comment for ([A-Za-z]+) (\d{4})", html_content)
+        if month_match:
+            mois_fr = {
+                "January": "Janvier", "February": "Février", "March": "Mars",
+                "April": "Avril", "May": "Mai", "June": "Juin", "July": "Juillet",
+                "August": "Août", "September": "Septembre", "October": "Octobre",
+                "November": "Novembre", "December": "Décembre",
+            }
+            month = f"{mois_fr.get(month_match.group(1), month_match.group(1))} {month_match.group(2)}"
 
+        comment = ""
+        if month_match:
+            start = month_match.end()
+            end_idx = html_content.find("Top 10 holdings", start)
+            raw = html_content[start:end_idx] if end_idx != -1 else html_content[start:start + 3000]
+            paragraphs = re.findall(r"<p[^>]*>(.*?)</p>", raw, re.DOTALL)
+            comment = " ".join(
+                html_module.unescape(re.sub(r"<[^>]+>", "", p)).strip() for p in paragraphs
+            )
+            comment = re.sub(r"\s+", " ", comment).strip()
+        print(f"Fundsmith commentaire: {len(comment)} caractères")
+        
         section = html_content.split("Top 10 holdings")
         holdings = []
         if len(section) > 1:
@@ -150,13 +173,13 @@ def fetch_fundsmith_holdings():
                         holdings.append(clean)
 
         print(f"Fundsmith holdings: {holdings[:10]}")
-        return holdings[:10]
+         return holdings[:10], month
     except Exception as e:
         print(f"Fundsmith fetch error: {e}")
-        return []
+        return [], ""
 
 # Fetch dynamique des holdings Fundsmith
-fundsmith_names = fetch_fundsmith_holdings()
+fundsmith_names, fundsmith_month = fetch_fundsmith_holdings()
 FUNDSMITH = []
 for name in fundsmith_names:
     ticker = FUNDSMITH_TICKERS.get(name)
@@ -240,7 +263,25 @@ def fetch_data(ticker):
         passe = close[close.index <= cible]
         if len(passe) > 0 and float(passe.iloc[-1]) != 0:
             perf_2m_x6 = (float(close.iloc[-1]) / float(passe.iloc[-1]) - 1) * 100 * 6
-        
+
+                sma200_all = [round(float(v), 4) if not pd.isna(v) else None for v in sma200]
+        n1y = min(252, len(close))
+
+        # (ton bloc perf_2m_x6 ici, s'il est présent)
+
+        # Heure réelle de la dernière cotation (heure de Paris)
+        last_label = close.index[-1].strftime("%d/%m")
+        try:
+            intr = yf.Ticker(ticker).history(period="5d", interval="1m", auto_adjust=False)
+            if intr is not None and len(intr) > 0:
+                ts = intr.index[-1]
+                if ts.tzinfo is None:
+                    ts = ts.tz_localize("UTC")
+                ts = ts.tz_convert("Europe/Paris")
+                last_label = ts.strftime("%d/%m %Hh%M")
+        except Exception as e:
+            print(f"  -> {ticker} : heure de cotation indisponible ({e})")
+
         return {
             "dates_3m":   dates_all[-63:],
             "close_3m":   close_all[-63:],
@@ -263,7 +304,7 @@ def fetch_data(ticker):
             "mm200":  round(float(mm200), 1),
             "last":   round(float(close.iloc[-1]), 4),
             "daily_change": round((float(close.iloc[-1]) - float(close.iloc[-2])) / float(close.iloc[-2]) * 100, 2) if len(close) >= 2 else 0,
-            "last_date": close.index[-1].strftime("%d/%m %Hh%M"),
+            "last_date": last_label,
             "ath_2y": round(float(close.max()), 4),
             "ath_pct": round((float(close.iloc[-1]) - float(close.max())) / float(close.max()) * 100, 1),
             "perf_2m_x6": round(perf_2m_x6, 1) if perf_2m_x6 is not None else None,
@@ -293,7 +334,7 @@ def get_data(name, ticker):
     if not ticker:
         return None
     if ticker not in data_cache:
-        data_cache[ticker] = fetch_data(ticker)
+        data_cache[ticker] = (ticker)
     return data_cache[ticker]
 
 print("=== CHARGEMENT DES DONNEES ===")
@@ -582,7 +623,8 @@ for bloc_name, pairs in BLOCS.items():
         body += '</div>'
     body += '</div>'
 
-body += '<div class="section-title">Fundsmith — Top 10 holdings</div><div class="section-body grid2">'
+titre_fs = "Fundsmith - Top 10 holdings" + (f" - {fundsmith_month}" if fundsmith_month else "")
+body += f'<div class="section-title">{titre_fs}</div><div class="section-body grid2">'
 if perf_pf is not None:
     body += (
         '<div class="chart-block" style="grid-column:1/-1">'
