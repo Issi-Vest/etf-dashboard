@@ -264,11 +264,6 @@ def fetch_data(ticker):
         if len(passe) > 0 and float(passe.iloc[-1]) != 0:
             perf_2m_x6 = (float(close.iloc[-1]) / float(passe.iloc[-1]) - 1) * 100 * 6
 
-                sma200_all = [round(float(v), 4) if not pd.isna(v) else None for v in sma200]
-        n1y = min(252, len(close))
-
-        # (ton bloc perf_2m_x6 ici, s'il est présent)
-
         # Heure réelle de la dernière cotation (heure de Paris)
         last_label = close.index[-1].strftime("%d/%m")
         try:
