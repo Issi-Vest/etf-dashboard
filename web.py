@@ -173,7 +173,7 @@ def fetch_fundsmith_holdings():
                         holdings.append(clean)
 
         print(f"Fundsmith holdings: {holdings[:10]}")
-         return holdings[:10], month
+        return holdings[:10], month
     except Exception as e:
         print(f"Fundsmith fetch error: {e}")
         return [], ""
