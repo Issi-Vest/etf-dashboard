@@ -10,3 +10,12 @@ NOTES = {
     "ICOM": "Agriculture ~30% / Énergie ~27% / Métaux ind. ~18% / Métaux préc. ~16% / Élevage ~7%",
   
 }
+
+# Alertes affichées tout en haut de la page (une phrase par ligne).
+ALERTES = ["Test d'alerte"]
+
+MEMO = """
+Écris ici ton mémo.
+Chaque ligne reste une ligne.
+Tu peux mettre des apostrophes et des guillemets sans souci.
+"""
