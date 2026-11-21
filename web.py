@@ -68,7 +68,7 @@ BLOCS = {
         ("UKOIL",  "BZ=F",   "Oil&Gas",           "IOGP.AS"),
         ("NRJ",   "NRJ.PA",   None,            None),
         ("HG1!",   "HG=F",   "COPAP",         "COPAP.PA"),
-        ("ALUM",   "ALUM.L", "PHAG",            "PHAG.AS"),
+        ("ALUM",   "ALUM.L",   None,            None),
     ],
     
     "Crypto": [
@@ -618,24 +618,45 @@ except Exception as e:
     print(f"MEMO non chargé: {e}")
     MEMO = ""
 
+SURVEILLANCE_KRACH = [
+    ("MSCI WORLD", "^990100-USD-STRD"),
+    ("SP500", "^GSPC"),
+    ("NDQ", "^NDX"),
+]
+
+alertes_auto = []
+sous_mm200 = []
+for nom, tk in SURVEILLANCE_KRACH:
+    d = get_data(nom, tk)
+    if isinstance(d, dict):
+        if d["mm200"] < 0:
+            sous_mm200.append(f"{nom} ({fmt(d['mm200'])})")
+    else:
+        alertes_auto.append(f"{nom} : données indisponibles, surveillance impossible")
+
+if len(sous_mm200) == len(SURVEILLANCE_KRACH):
+    alertes_auto.insert(0, "🚨 KRACH ! Passer cash ! Sous la MM200 : " + ", ".join(sous_mm200))
+elif sous_mm200:
+    alertes_auto.insert(0, f"⚠️ {len(sous_mm200)} indice(s) sur {len(SURVEILLANCE_KRACH)} sous la MM200 : " + ", ".join(sous_mm200))
+
 os.makedirs("output", exist_ok=True)
 body = ""
 
+toutes_alertes = alertes_auto + list(ALERTES)
 body += '<div class="section-title">🔔 Alertes</div><div class="section-body">'
-if ALERTES:
+if toutes_alertes:
     body += '<ul style="margin-left:18px;font-size:0.85em">'
-    for a in ALERTES:
-        body += f'<li>{html_module.escape(a)}</li>'
+    for a in toutes_alertes:
+        if a.startswith("🚨"):
+            style = ' style="color:#e60000;font-weight:bold;font-size:1.15em"'
+        elif a.startswith("⚠️"):
+            style = ' style="color:#e65100;font-weight:bold"'
+        else:
+            style = ""
+        body += f'<li{style}>{html_module.escape(a)}</li>'
     body += '</ul>'
 else:
     body += '<p class="no-data" style="padding:8px 0">Aucune alerte pour le moment.</p>'
-body += '</div>'
-
-body += '<div class="section-title">📝 Mémo</div><div class="section-body">'
-if MEMO.strip():
-    body += f'<div class="memo">{html_module.escape(MEMO.strip())}</div>'
-else:
-    body += '<p class="no-data" style="padding:8px 0">Mémo vide.</p>'
 body += '</div>'
 
 body += '<div class="section-title">Devises</div><div class="section-body">'
