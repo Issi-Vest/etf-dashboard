@@ -10,6 +10,7 @@ NOTES = {
     "DBC": "Énergie dominante (plafond ~60%), reste en métaux et agriculture",
     "COMO": "Énergie ~45% / Métaux industriels ~33% / Métaux précieux ~22% - Pas d'agriculture !",
     "ICOM": "Agriculture ~30% / Énergie ~27% / Métaux ind. ~18% / Métaux préc. ~16% / Élevage ~7%",
+    "SP500": "Acheter sur support TACO avril 2025 !"
 }
 
 # Alertes affichées tout en haut de la page (une phrase par ligne).
