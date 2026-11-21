@@ -5,6 +5,8 @@ import html as html_module
 import urllib.request
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import time
+import requests
 
 print("=== DEBUT WEB.PY ===")
 
@@ -125,17 +127,30 @@ FUNDSMITH_TICKERS = {
 # =========================
 def fetch_fundsmith_holdings():
     try:
-        req = urllib.request.Request(
-            "https://www.fundsmith.co.uk/factsheet/",
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
-                "Accept-Encoding": "identity",
-            }
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            html_content = resp.read().decode("utf-8")
+        html_content = None
+        for attempt in range(1, 5):
+            try:
+                r = requests.get(
+                    "https://www.fundsmith.co.uk/factsheet/",
+                    timeout=20,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                        "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
+                        "Accept-Encoding": "identity",
+                    },
+                )
+                print(f"Fundsmith tentative {attempt}: HTTP {r.status_code}")
+                if r.status_code == 200:
+                    html_content = r.text
+                    break
+            except Exception as e:
+                print(f"Fundsmith tentative {attempt}: erreur {e}")
+            time.sleep(5 * attempt)
+
+        if html_content is None:
+            print("Fundsmith: toutes les tentatives ont échoué")
+            return [], ""
       
         month = ""
         month_match = re.search(r"Portfolio Comment for ([A-Za-z]+) (\d{4})", html_content)
