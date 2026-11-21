@@ -220,6 +220,26 @@ def fetch_data(ticker):
             return None
         close = close.dropna()
 
+        # Complète la dernière séance si le journalier est en retard (cours à la minute)
+        last_label = close.index[-1].strftime("%d/%m")
+        try:
+            intr = yf.Ticker(ticker).history(period="5d", interval="1m", auto_adjust=False)
+            intr_close = intr["Close"].dropna() if intr is not None and len(intr) > 0 else None
+            if intr_close is not None and len(intr_close) > 0:
+                ts = intr_close.index[-1]
+                if ts.tzinfo is None:
+                    ts = ts.tz_localize("UTC")
+                last_label = ts.tz_convert("Europe/Paris").strftime("%d/%m %Hh%M")
+                trade_date = ts.date()
+                if len(close) > 0 and trade_date > close.index[-1].date():
+                    new_idx = pd.Timestamp(trade_date)
+                    if close.index.tz is not None:
+                        new_idx = new_idx.tz_localize(close.index.tz)
+                    close = pd.concat([close, pd.Series([float(intr_close.iloc[-1])], index=[new_idx])])
+                    print(f"  -> {ticker} : séance du {trade_date} ajoutée depuis les cours à la minute")
+        except Exception as e:
+            print(f"  -> {ticker} : heure de cotation indisponible ({e})")
+            
         if len(close) < 63:
             return None
 
@@ -263,19 +283,6 @@ def fetch_data(ticker):
         passe = close[close.index <= cible]
         if len(passe) > 0 and float(passe.iloc[-1]) != 0:
             perf_2m_x6 = (float(close.iloc[-1]) / float(passe.iloc[-1]) - 1) * 100 * 6
-
-        # Heure réelle de la dernière cotation (heure de Paris)
-        last_label = close.index[-1].strftime("%d/%m")
-        try:
-            intr = yf.Ticker(ticker).history(period="5d", interval="1m", auto_adjust=False)
-            if intr is not None and len(intr) > 0:
-                ts = intr.index[-1]
-                if ts.tzinfo is None:
-                    ts = ts.tz_localize("UTC")
-                ts = ts.tz_convert("Europe/Paris")
-                last_label = ts.strftime("%d/%m %Hh%M")
-        except Exception as e:
-            print(f"  -> {ticker} : heure de cotation indisponible ({e})")
 
         return {
             "dates_3m":   dates_all[-63:],
