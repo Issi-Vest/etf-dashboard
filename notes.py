@@ -13,7 +13,7 @@ NOTES = {
 }
 
 # Alertes affichées tout en haut de la page (une phrase par ligne).
-ALERTES = ["Message "]
+ALERTES = ["Garder un portefeuille équilibré !"]
 
 # Mémo affiché tout en haut de la page
 MEMO = """
@@ -23,7 +23,7 @@ Quand tout est euphorique, il faut sortir. Dans la panique, il faut entrer.
 Etre en position que quand tendance haussière, sinon le monétaire rapporte mieux !
 En range, on gagne plus d'argent sur du monétaire que sur des actifs qui stagnent.
 
-Notes (alertes, mémo, notes) à écrire dans notes.py
+(Notes manuelles (alertes, mémo, notes) à écrire dans notes.py)
 """
 
 # Fundsmith : utilisé seulement si le site refuse la requête automatique.
