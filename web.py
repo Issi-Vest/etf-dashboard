@@ -195,6 +195,18 @@ def fetch_fundsmith_holdings():
 
 # Fetch dynamique des holdings Fundsmith
 fundsmith_names, fundsmith_month = fetch_fundsmith_holdings()
+try:
+    from notes import FUNDSMITH_MOIS, FUNDSMITH_TOP10
+except Exception as e:
+    print(f"Fundsmith manuel non chargé: {e}")
+    FUNDSMITH_MOIS, FUNDSMITH_TOP10 = "", []
+
+fundsmith_manuel = False
+if not fundsmith_names and FUNDSMITH_TOP10:
+    fundsmith_names = FUNDSMITH_TOP10
+    fundsmith_manuel = True
+if not fundsmith_month:
+    fundsmith_month = FUNDSMITH_MOIS
 FUNDSMITH = []
 for name in fundsmith_names:
     ticker = FUNDSMITH_TICKERS.get(name)
@@ -649,7 +661,7 @@ for bloc_name, pairs in BLOCS.items():
         body += '</div>'
     body += '</div>'
 
-titre_fs = "Fundsmith - Top 10 holdings" + (f" - {fundsmith_month}" if fundsmith_month else "")
+titre_fs = "Fundsmith - Top 10 holdings" + (f" - {fundsmith_month}" if fundsmith_month else "") + (" (saisie manuelle)" if fundsmith_manuel else "")
 body += f'<div class="section-title">{titre_fs}</div><div class="section-body grid2">'
 if perf_pf is not None:
     body += (
