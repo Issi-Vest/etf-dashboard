@@ -23,3 +23,9 @@ Quand tout est euphorique, il faut sortir. Dans la panique, il faut entrer.
 Etre en position que quand tendance haussière, sinon le monétaire rapporte mieux !
 En range, on gagne plus d'argent sur du monétaire que sur des actifs qui stagnent.
 """
+# Fundsmith : utilisé seulement si le site refuse la requête automatique.
+# À mettre à jour une fois par mois.
+FUNDSMITH_MOIS = "Octobre 2026"
+FUNDSMITH_TOP10 = ["Waters", "Visa", "Mastercard", "Amadeus", "Veeva Systems",
+                   "Stryker", "L'Oréal", "Yum! Brands", "Church & Dwight", "Sage"]
+FUNDSMITH_COMMENTAIRE = """There were no outright sales or purchases of holdings made in the month. The top 5 contributors in the month were Sage, Mastercard, Visa, Church & Dwight and Veeva Systems. The top 5 detractors were Fortinet, Meta Platforms, Alphabet, TSMC and Legrand."""
