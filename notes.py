@@ -23,6 +23,7 @@ Quand tout est euphorique, il faut sortir. Dans la panique, il faut entrer.
 Etre en position que quand tendance haussière, sinon le monétaire rapporte mieux !
 En range, on gagne plus d'argent sur du monétaire que sur des actifs qui stagnent.
 """
+
 # Fundsmith : utilisé seulement si le site refuse la requête automatique.
 # À mettre à jour une fois par mois.
 FUNDSMITH_MOIS = "Octobre 2026"
