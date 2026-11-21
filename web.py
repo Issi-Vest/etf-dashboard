@@ -329,7 +329,7 @@ def get_data(name, ticker):
     if not ticker:
         return None
     if ticker not in data_cache:
-        data_cache[ticker] = (ticker)
+        data_cache[ticker] = fetch_data(ticker)
     return data_cache[ticker]
 
 print("=== CHARGEMENT DES DONNEES ===")
