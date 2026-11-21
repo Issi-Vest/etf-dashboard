@@ -2,7 +2,6 @@
 # Clé = le nom affiché sur la page (sans l'emoji), valeur = le texte.
 # Chaque ligne se termine par une virgule.
 # \n = retour à la ligne.
-
 NOTES = {
     "XAUUSD": "Si USD monte, l'or baisse !",
     "USDEUR": "Si USD baisse, l'or monte !",
@@ -14,14 +13,17 @@ NOTES = {
 }
 
 # Alertes affichées tout en haut de la page (une phrase par ligne).
-ALERTES = ["Test d'alerte"]
+ALERTES = ["Message "]
 
+# Mémo affiché tout en haut de la page
 MEMO = """
 Si -20%/+haut du trimestre alors réinvestir sur 10 semaines.
 Si cassure de trendline => alléger.
 Quand tout est euphorique, il faut sortir. Dans la panique, il faut entrer.
 Etre en position que quand tendance haussière, sinon le monétaire rapporte mieux !
 En range, on gagne plus d'argent sur du monétaire que sur des actifs qui stagnent.
+
+Notes (alertes, mémo, notes) à écrire dans notes.py
 """
 
 # Fundsmith : utilisé seulement si le site refuse la requête automatique.
