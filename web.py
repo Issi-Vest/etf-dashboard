@@ -659,6 +659,13 @@ else:
     body += '<p class="no-data" style="padding:8px 0">Aucune alerte pour le moment.</p>'
 body += '</div>'
 
+body += '<div class="section-title">📝 Mémo</div><div class="section-body">'
+if MEMO.strip():
+    body += f'<div class="memo">{html_module.escape(MEMO.strip())}</div>'
+else:
+    body += '<p class="no-data" style="padding:8px 0">Mémo vide.</p>'
+body += '</div>'
+
 body += '<div class="section-title">Devises</div><div class="section-body">'
 for line in DEVISES:
     body += '<div class="devise-line">'
