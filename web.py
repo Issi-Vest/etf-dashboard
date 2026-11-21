@@ -201,6 +201,12 @@ except Exception as e:
     print(f"Fundsmith manuel non chargé: {e}")
     FUNDSMITH_MOIS, FUNDSMITH_TOP10 = "", []
 
+try:
+    from notes import FUNDSMITH_COMMENTAIRE
+except Exception as e:
+    print(f"FUNDSMITH_COMMENTAIRE non chargé: {e}")
+    FUNDSMITH_COMMENTAIRE = ""
+
 fundsmith_manuel = False
 if not fundsmith_names and FUNDSMITH_TOP10:
     fundsmith_names = FUNDSMITH_TOP10
@@ -706,6 +712,14 @@ if perf_pf is not None:
     )
 for name, ticker in FUNDSMITH:
     body += render_chart(name, ticker, small=True)
+
+if FUNDSMITH_COMMENTAIRE.strip() and fundsmith_manuel:
+    body += (
+        '<div class="chart-block" style="grid-column:1/-1">'
+        '<b>Commentaire du mois (saisie manuelle) :</b>'
+        f'<p style="margin:6px 0 0 0;font-size:0.85em">{html_module.escape(FUNDSMITH_COMMENTAIRE.strip())}</p>'
+        '</div>'
+    )
 body += '</div>'
 
 # =========================
