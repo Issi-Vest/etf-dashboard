@@ -358,6 +358,8 @@ chart_counter = [0]
 
 def render_chart(name, ticker, small=False):
     data = get_data(name, ticker)
+    if not isinstance(data, dict):
+        data = None
     chart_counter[0] += 1
     cid = f"c{chart_counter[0]}"
     height = 160 if small else 200
@@ -535,7 +537,7 @@ def taux_card(label, code):
 # =========================
 def perf_30j(data):
     if not isinstance(data, dict) or "dates_2y" not in data:
-        print(f"  PF: données inattendues (type {type(data).__name__})")
+        print(f"  PF: données inattendues, type {type(data).__name__}, contenu : {repr(data)[:120]}")
         return None
     dates = pd.to_datetime(data["dates_2y"])
     closes = data["close_2y"]
