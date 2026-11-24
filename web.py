@@ -55,7 +55,7 @@ BLOCS = {
         ("DAX",           "^GDAXI",    "CG1 (DAX)",     "CG1.PA"),
         ("CAC 40 (dividendes non réinvestis)",   "^FCHI",  "CACC (CAC GR)", "CACC.PA"),
         ("GRE",           "GRE.PA",    "INR",     "INR.PA"),
-        ("Emergents (EUNM)", "EUNM.DE",   None,            None),
+        ("Emergents (EUNM)", "EUNM.DE",    "Immo Europe PMEH",     "PMEH.PA"),
         
     ],
     "Matières premières": [
