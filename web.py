@@ -37,12 +37,12 @@ dispatch_token = os.environ.get("DISPATCH_TOKEN", "")
 # STRUCTURE DES BLOCS
 # =========================
 
-TAUX_ETF = {"PR1T.L", "PR1T.DE", "YCSH.AS"}
+TAUX_ETF = {"PR1T.L", "PR1T.DE", "YCSH.AS","0P00000T0T.F"}
 
 BLOCS = {
         "ETF sur taux": [
         ("PR1T (LSE)", "PR1T.L",  "PR1T (XETRA)", "PR1T.DE"),
-        ("YCSH",       "YCSH.AS", None,            None),
+        ("YCSH",       "YCSH.AS",  "AXA PEA Régularité C", "0P00000T0T.F"),
     ],
     
     "Indices actions": [
