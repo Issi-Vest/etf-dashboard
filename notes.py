@@ -24,6 +24,7 @@ Etre en position que quand tendance haussière, sinon le monétaire rapporte mie
 En range, on gagne plus d'argent sur du monétaire que sur des actifs qui stagnent.
 
 (Notes manuelles (alertes, mémo, notes) à écrire dans notes.py)
+(Notes concernant le renouvellement du jeton "actualiser" dans notes.py)
 """
 
 # Fundsmith : utilisé seulement si le site refuse la requête automatique.
@@ -32,3 +33,25 @@ FUNDSMITH_MOIS = "Octobre 2026"
 FUNDSMITH_TOP10 = ["Waters", "Visa", "Mastercard", "Amadeus", "Veeva Systems",
                    "Stryker", "L'Oréal", "Yum! Brands", "Church & Dwight", "Sage"]
 FUNDSMITH_COMMENTAIRE = """There were no outright sales or purchases of holdings made in the month. The top 5 contributors in the month were Sage, Mastercard, Visa, Church & Dwight and Veeva Systems. The top 5 detractors were Fortinet, Meta Platforms, Alphabet, TSMC and Legrand."""
+
+# =====================================================
+# RENOUVELER LE JETON DU BOUTON "ACTUALISER" (tous les ~90 jours)
+# Signe que c'est nécessaire : le bouton affiche "Erreur 401".
+# =====================================================
+# 1. Aller sur github.com, cliquer sur l'avatar (en haut à droite)
+#    puis "Settings" (les réglages du COMPTE, pas ceux du repo).
+# 2. Tout en bas du menu de gauche : "Developer settings".
+# 3. "Personal access tokens" -> "Tokens (classic)".
+# 4. "Generate new token" -> "Generate new token (classic)".
+# 5. Nom : dashboard-trigger / Expiration : 90 jours.
+# 6. Cocher UNIQUEMENT la case "workflow", puis "Generate token".
+# 7. COPIER le jeton tout de suite (il commence par ghp_ et ne sera
+#    plus jamais affiché). Ne le coller nulle part d'autre.
+# 8. Aller dans le repo etf-dashboard -> Settings
+#    -> "Secrets and variables" -> "Actions".
+# 9. Repérer le secret DISPATCH_TOKEN -> cliquer sur le crayon
+#    ("Update secret") -> coller le nouveau jeton -> "Update secret".
+# 10. (Facultatif) Supprimer l'ancien jeton dans Developer settings.
+# 11. Onglet Actions -> "ETF Dashboard" -> "Run workflow", pour que la
+#     page se régénère avec le nouveau jeton. Ensuite, tester le
+#     bouton "Actualiser" : il doit afficher "Lancé".
